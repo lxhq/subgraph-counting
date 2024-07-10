@@ -1,0 +1,33 @@
+{
+    "configurations": [
+    {
+        "name": "(gdb) Launch",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/build/executable/scope.out",
+        "args": [
+            "-q", "${workspaceFolder}/exp/pattern_graph/5voc/62.txt",
+            "-d", "${workspaceFolder}/exp/data_graph/web-spam.txt",
+            "-t", "${workspaceFolder}/exp/data_graph/web-spamt.bin",
+            "-r", "${workspaceFolder}/result/5voc/web-spam/62.txt"
+        ],
+        "stopAtConnect": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            },
+            {
+                "description": "Set disassembly-flavor intel",
+                "text": "set disassembly-flavor intel",
+                "ignoreFailures": true
+            }
+        ],
+    }
+    ]
+}
