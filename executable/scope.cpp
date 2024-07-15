@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
             start = std::chrono::steady_clock::now();
             ConNode cn;
             if (!patternGraphs[i].isClique()) {
-                genEquation(patternGraphs[i], patterns, trees, cn, useTriangle, true, true, true);
+                genEquation(patternGraphs[i], patterns, trees, cn, useTriangle, false, true, false);
             }
             end = std::chrono::steady_clock::now();
             elapsedSeconds = end - start;

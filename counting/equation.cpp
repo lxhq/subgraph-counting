@@ -231,6 +231,7 @@ bool genEquation(const PatternGraph &p, std::map<int, std::vector<Pattern>> &pat
                                                             useTriangle);
     int uFactor = p.getAutoSize() / rootBestDecomp[0].getMultiFactor() / rootBestDecomp[0].getAggreWeight().size();
     Tree &rt = rootBestDecomp[0];
+    //Find common vertices among nodes and children nodes
     rt.rebuildCut();
     cn = ConNode(p, rt);
     if (cn.num != 0) {

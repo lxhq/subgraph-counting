@@ -6,10 +6,10 @@
         "request": "launch",
         "program": "${workspaceFolder}/build/executable/scope.out",
         "args": [
-            "-q", "${workspaceFolder}/exp/pattern_graph/5voc/62.txt",
+            "-q", "${workspaceFolder}/exp/pattern_graph/5voc/52.txt",
             "-d", "${workspaceFolder}/exp/data_graph/web-spam.txt",
-            "-t", "${workspaceFolder}/exp/data_graph/web-spamt.bin",
-            "-r", "${workspaceFolder}/result/5voc/web-spam/62.txt"
+            // "-t", "${workspaceFolder}/exp/data_graph/web-spamt.bin",
+            "-r", "${workspaceFolder}/result/5voc/web-spam/52.txt",
         ],
         "stopAtConnect": false,
         "cwd": "${workspaceFolder}",
