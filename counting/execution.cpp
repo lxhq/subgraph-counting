@@ -1649,7 +1649,7 @@ void executeTree (
         }
     }
 
-    // for each partition, calls executePartition to build a full hash table
+    // (What is a partition?)for each partition, calls executePartition to build a full hash table
     for (VertexID pID = 0; pID < t.getPartitionPos().size(); ++pID) {
         executePartition(pID, t, candidate, candCount, H, din, dout, dun, useTriangle, tri,
                          p, outID, unID, reverseID, startOffset, patternV, dataV, visited, pos, tmp, allV);

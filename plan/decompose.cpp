@@ -566,6 +566,7 @@ getBestDecomposition(const Pattern &p, const std::vector<Tree> &allTree, std::ve
     }
     bool directed = p.useDAG();
     int numRules;
+    // in the function below, we add peripheral nodes to the tree
     std::vector<std::vector<Tree>> allRootedTree = minWidthMaxSymmTrees(p, allTree, sign, numRules, prefix, useTriangle);
     // now all rooted tree are those with maximum number of rules
 #ifdef ONLY_PLAN

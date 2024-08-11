@@ -95,6 +95,7 @@ public:
     void loadDataGraph(const std::string &file);
     void buildLargerOffset();
     void initSpecialSparse(specialsparse *sg) const;
+    void printGraph() const;
 };
 
 class PatternGraph : public Graph {

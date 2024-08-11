@@ -226,9 +226,12 @@ bool genEquation(const PatternGraph &p, std::map<int, std::vector<Pattern>> &pat
     std::vector<PatternGraph> inGraphs, outGraphs;
     Pattern rootPattern(p);
     // choose the best decomposition for the undirected P
+    // only core vertices are included in rootAllTree. All peripheral vertices are not included.
     std::vector<Tree> rootAllTree = getAllTree(rootPattern.u);
+    // insert peripheral vertices into the tree 
     std::vector<Tree> rootBestDecomp = getBestDecomposition(rootPattern, rootAllTree, visitedDecomp, true, prefix,
                                                             useTriangle);
+    // I guess multi-factor is \mu in the paper
     int uFactor = p.getAutoSize() / rootBestDecomp[0].getMultiFactor() / rootBestDecomp[0].getAggreWeight().size();
     Tree &rt = rootBestDecomp[0];
     //Find common vertices among nodes and children nodes
@@ -389,6 +392,7 @@ bool genEquation(const PatternGraph &p, std::map<int, std::vector<Pattern>> &pat
                 q.push(shr);
             }
         }
+        // compute the tiso tree for each of the covered patterns recursively
         while (!q.empty()) {
             std::vector<Pattern> pts;
             // pop all patterns in queue

@@ -43,7 +43,10 @@ int main(int argc, char **argv) {
     std::vector<PatternGraph> patternGraphs = loadPatternGraph(queryGraphPath, batchQuery, files);
     int patternSize = patternGraphs[0].getNumVertices();
     bool forestShare = patternSize <= 5;
+    // What is factorSum?
     HashTable factorSum = new Count[m + 1];
+    //What is ht? Why it is initialized with the number of edges?
+    //Count* ht[MAX_NUM_NODE]
     HashTable ht[MAX_NUM_NODE];
     for (auto & h: ht)
         h = new Count[m + 1];
@@ -86,12 +89,13 @@ int main(int argc, char **argv) {
             start = std::chrono::steady_clock::now();
             ConNode cn;
             if (!patternGraphs[i].isClique()) {
-                genEquation(patternGraphs[i], patterns, trees, cn, useTriangle, false, true, false);
+                genEquation(patternGraphs[i], patterns, trees, cn, useTriangle, true, true, true);
             }
             end = std::chrono::steady_clock::now();
             elapsedSeconds = end - start;
             totalPlanTime += elapsedSeconds.count();
             start = std::chrono::steady_clock::now();
+            // Count* H. The LSC result is stored in H
             HashTable H;
             int orbitType = patternGraphs[i].getOrbitType();
             orbitTypes[i] = orbitType;

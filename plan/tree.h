@@ -18,15 +18,16 @@ extern double gTDTime;
 
 struct Node {
     int id;
-    VertexID *vertices;
+    VertexID *vertices;     // sorted
     ui numVertices;
     ui numSources;          // number of vertices that have 0 out degree
+    // cut vertices are the vertices common with the parent node
     VertexID *cut;          // sorted
     ui cutSize;
     VertexID *prefix;       // not sorted
     ui prefixSize;
     VertexID *key;          // sorted
-    ui keySize;             // 0: root node, aggregation defined in tree 1: key is vertex 2: key is edge
+    ui keySize;             // 0: root node, aggregation defined in tree 1: key is vertex (cutSize == 1) 2: key is edge (cutSize == 2 && cut is an edge)
     std::vector<VertexID> localOrder;
     std::vector<VertexID> nodeOrder;
     VertexID **automorphisms;

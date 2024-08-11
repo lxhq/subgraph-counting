@@ -187,6 +187,7 @@ void DataGraph::loadDataGraph(const std::string &file) {
     buildLargerOffset();
 
     delete[] edgeList;
+    // printGraph();
 }
 
 DataGraph::DataGraph() {
@@ -242,6 +243,42 @@ void DataGraph::initSpecialSparse(specialsparse *sg) const {
             sg->edges[e].t = w;
         }
     }
+}
+
+void DataGraph::printGraph() const {
+    //_numVertices
+    printf("numVertices: %d\n", _numVertices);
+
+    //_numEdges
+    printf("numEdges: %d\n", _numEdges);
+
+    // _offsets
+    printf("_offsets: ");
+    for (int i = 0; i < _numVertices + 1; ++i) {
+        printf("%d ", _offsets[i]);
+    }
+    printf("\n");
+
+    // _nbors
+    printf("_nbors: ");
+    for (int i = 0; i < _numEdges; ++i) {
+        printf("%d ", _nbors[i]);
+    }
+    printf("\n");
+
+    // _degree
+    printf("_degree: ");
+    for (int i = 0; i < _numVertices; ++i) {
+        printf("%d ", _degree[i]);
+    }
+    printf("\n");
+
+    // _largerOffsets
+    printf("_largerOffsets: ");
+    for (int i = 0; i < _numVertices; ++i) {
+        printf("%d ", _largerOffsets[i]);
+    }
+    printf("\n");
 }
 
 PatternGraph::PatternGraph() {
