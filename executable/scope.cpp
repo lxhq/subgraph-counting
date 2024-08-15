@@ -43,18 +43,31 @@ int main(int argc, char **argv) {
     std::vector<PatternGraph> patternGraphs = loadPatternGraph(queryGraphPath, batchQuery, files);
     int patternSize = patternGraphs[0].getNumVertices();
     bool forestShare = patternSize <= 5;
-    // What is factorSum?
+    // what is factorSum?
+    // in the computation, we have a list of patterns (trees for each pattern accordingly, and each tree owns its factor \mu)
+    // we are going to compute the tiso-count of each tree one by one
+    // the result count with the factor \mu is stored in the factorSum
     HashTable factorSum = new Count[m + 1];
-    //What is ht? Why it is initialized with the number of edges?
-    //Count* ht[MAX_NUM_NODE]
+    
+    // what is ht? Why it is initialized with the MAX_NUM_NODE
+    // Count* ht[MAX_NUM_NODE] == Count* ht[10]
+    // ht is a matrix with 10 rows and m+1 columns
+    // ht is designed for a single tree, each row is the count for a single node
     HashTable ht[MAX_NUM_NODE];
     for (auto & h: ht)
         h = new Count[m + 1];
+    // candPos is for each pattern vertex
+    // elements in candPos is a pointer points to the current matched data vertex candidate in the candidate list
+    // candPos[mappingSize] points to a data vertex in the candidate[nodeID][mappingSize] array to be matched
     ui *candPos = new ui[MAX_PATTERN_SIZE];
     memset(candPos, 0, sizeof(ui) * (MAX_PATTERN_SIZE));
+    // patternV, dataV, startOffset are designed that for each tree node and for each pattern vertex
+    // patternV is the current matching query vertex id
+    // dataV is the current matched data vertex id
     VertexID **patternV = new VertexID *[MAX_NUM_NODE];
     VertexID **dataV = new VertexID *[MAX_NUM_NODE];
     EdgeID **startOffset = new EdgeID *[MAX_NUM_NODE];
+    //visited is for each tree node and for each data vertex
     bool **visited = new bool *[MAX_NUM_NODE];
     for (int i = 0; i < MAX_NUM_NODE; ++i) {
         patternV[i] = new VertexID[MAX_PATTERN_SIZE];
@@ -63,6 +76,7 @@ int main(int argc, char **argv) {
         visited[i] = new bool[n];
         memset(visited[i], false, sizeof(bool) * n);
     }
+    //tmp and allV are for each data graph vertex
     VertexID *tmp = new VertexID[n];
     VertexID *allV = new VertexID[n];
     for (VertexID i = 0; i < n; ++i) {
@@ -175,6 +189,9 @@ int main(int argc, char **argv) {
                         }
                         else {
                             const Tree &t = trees[divideFactor][j][j2];
+                            std::cout << "tree: " << divideFactor << " " << j << " " << j2 << std::endl;
+                            t.print();
+                            it -> second[j].u.printGraph();
                             if (t.getExecuteMode()) {
                                 executeTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
                                             ht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV);
@@ -184,6 +201,7 @@ int main(int argc, char **argv) {
                                               ht, outID, unID, reverseID, startOffset, patternV, dataV, visited, tmp, allV);
                             }
                         }
+                        // ht is the cout for each node. here h is the count for the root node
                         HashTable h = ht[trees[divideFactor][j][j2].getRootID()];
                         int multiFactor = trees[divideFactor][j][j2].getMultiFactor();
                         if (!resultPath.empty()) {
@@ -197,6 +215,12 @@ int main(int argc, char **argv) {
                                     factorSum[l] += h[l] * multiFactor;
                                 }
                         }
+                        // print the factorSum
+                        std::cout << "factorSum: ";
+                        for (VertexID l = 0; l < n; ++l) {
+                            std::cout << factorSum[l] << " ";
+                        }
+                        std::cout << std::endl << std::endl;
 #ifdef DEBUG
                         if (divideFactor == 2 && patterns[divideFactor][j].u.getCanonValue() == 281875) {
                         for (VertexID l = 0; l < n; ++l) {

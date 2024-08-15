@@ -1614,6 +1614,17 @@ void executePartition(
     delete[] keyPosSize;
 }
 
+
+void print_hash_table(HashTable *H, ui m, ui numNodes) {
+    for (ui i = 0; i < numNodes; i++) {
+        for (ui j = 0; j < m; j++) {
+            std::cout << H[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+}
+
 void executeTree (
         const Tree &t,
         const DataGraph &din,
@@ -1653,7 +1664,21 @@ void executeTree (
     for (VertexID pID = 0; pID < t.getPartitionPos().size(); ++pID) {
         executePartition(pID, t, candidate, candCount, H, din, dout, dun, useTriangle, tri,
                          p, outID, unID, reverseID, startOffset, patternV, dataV, visited, pos, tmp, allV);
+        print_hash_table(H, dun.getNumEdges(), t.getNumNodes());
+
+        //print the candidate content
+        auto nodeID = t.getPostOrder()[pID];
+        std::cout<< "node " << nodeID << std::endl;
+        for (VertexID vertexID = 0; vertexID < t.getNode(nodeID).nodeOrder.size(); vertexID++) {
+            std::cout<< "vertex " <<t.getNode(nodeID).nodeOrder[vertexID] << ": ";
+            for (ui count = 0; count < candCount[nodeID][vertexID]; count++) {
+                std::cout << candidate[nodeID][vertexID][count] << " ";
+            }
+            std::cout<<std::endl;
+        }
+        std::cout<<std::endl;
     }
+    // all code below is just about freeing the memory, the tiso-count of this tree is already stored in H
     for (VertexID nID = 0; nID < numNodes; ++nID) {
         const Node &tau = t.getNode(nID);
         int partOrderLength = int(tau.nodeOrder.size() - tau.localOrder.size());
