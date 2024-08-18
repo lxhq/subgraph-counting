@@ -108,6 +108,8 @@ private:
     // for some vertices there is no intersection of (in-/out-) neighbors
     // for such vertices, we directly assign them neighbor pointers,
     // for other vertices, they are allocated a candidate list
+    // For example, for a triangle the _nodeInterPos = {false, false, true}
+    // we have first two falses because there is no need to do intersection for the first two vertices, which is a simple edge
     std::vector<std::vector<bool>> _partitionInterPos;
     std::vector<std::vector<bool>> _nodeInterPos;
     // for node nID, when the mappingSize is i, the positions of in-neighbors are in _nodeInPos[nID][i]

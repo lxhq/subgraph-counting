@@ -10,6 +10,16 @@ Count gNumIntermediate = 0;
 Count gNumEdgeID = 0;
 Count gNumUpdate = 0;
 
+void print_hash_table(HashTable *H, ui m, ui numNodes) {
+    for (ui i = 0; i < numNodes; i++) {
+        for (ui j = 0; j < m; j++) {
+            std::cout << H[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+}
+
 void saveCount(const std::string &resultPath, std::vector<HashTable> H, const DataGraph &d, bool batchQuery,
                const std::vector<std::string> &files, const std::vector<int> &orbitTypes) {
     if (batchQuery) {
@@ -462,6 +472,7 @@ void executeNode(
             VertexID v = candidate[mappingSize][pos[mappingSize]];
             ++pos[mappingSize];
             if (visited[v]) continue;
+            // inside a tree node, we are computing the iso-match, so we need to check if the vertex is visited
             visited[v] = true;
             patternV[mappingSize] = tau.nodeOrder[mappingSize];
             dataV[mappingSize] = v;
@@ -521,6 +532,7 @@ void executeNode(
                         candCount[mappingSize] = inOffset[w + 1] - inOffset[w];
                     }
                     else {
+                        // why not use dataV[mappingSize - 1] here?
                         VertexID w = dataV[nodeUnPos[mappingSize][0]];
                         startOffset[mappingSize] = unOffset[w];
                         candidate[mappingSize] = unNbors + unOffset[w];
@@ -903,11 +915,15 @@ void executeNodeEdgeKey(
     for (int i = 1; i < mappingSize; ++i) {
         // for child edge keys, compute the key value
         for (int j: posChildEdge[i]) {
+            // when the mapping size is i, jth child owns common keys with the parent node
+            // the common edge of the jth child is from childKeyPos[j][0] to childKeyPos[j][1]
             childKey[j] = computeEdgeKey(din, dout, dun, outID, unID, reverseID, startOffset, i, pos,
                                          childEdgeType[j], dataV[childKeyPos[j][0]], dataV[childKeyPos[j][1]]);
         }
         // for aggregation edge keys, compute the key value
         for (int j: posAggreEdge[i]) {
+            // The computeEdgeKey operation is not done in the final stage
+            // Instead, it is done when the mapping (mappingSize) covers both end nodes of the edge
             aggreKey[j] = computeEdgeKey(din, dout, dun, outID, unID, reverseID, startOffset, i, pos,
                                          aggreEdgeType[j], dataV[aggrePos[2 * j]], dataV[aggrePos[2 * j + 1]]);
         }
@@ -1471,6 +1487,9 @@ void executePartition(
                         executeNodeEdgeKeyT(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, tri, p, isRoot, outID, unID, reverseID,
                                             startOffset, patternV, dataV, mappingSize + 1, visited, pos, nullptr, argument, argument, tmp, allV);
                     }
+#ifdef PRINT_INTER_RESULTS
+                    print_hash_table(H, m, t.getNumNodes());
+#endif
                 }
                 else if (t.getNode(nID).keySize < 2) {
                     if (keyPosSize[nID] < n / 8 + 1) {
@@ -1518,6 +1537,9 @@ void executePartition(
                         executeNodeEdgeKeyT(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, tri, p, false, outID, unID, reverseID, startOffset,
                                             patternV, dataV, mappingSize + 1, visited, pos, keyPos[nID], keyPosSize[nID], m / 8, tmp, allV);
                     }
+#ifdef PRINT_INTER_RESULTS
+                    print_hash_table(H, m, t.getNumNodes());
+#endif
                 }
             }
             if (depth == partitionOrder.size() - 1) {
@@ -1614,17 +1636,6 @@ void executePartition(
     delete[] keyPosSize;
 }
 
-
-void print_hash_table(HashTable *H, ui m, ui numNodes) {
-    for (ui i = 0; i < numNodes; i++) {
-        for (ui j = 0; j < m; j++) {
-            std::cout << H[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-}
-
 void executeTree (
         const Tree &t,
         const DataGraph &din,
@@ -1664,19 +1675,9 @@ void executeTree (
     for (VertexID pID = 0; pID < t.getPartitionPos().size(); ++pID) {
         executePartition(pID, t, candidate, candCount, H, din, dout, dun, useTriangle, tri,
                          p, outID, unID, reverseID, startOffset, patternV, dataV, visited, pos, tmp, allV);
+#ifdef PRINT_INTER_RESULTS
         print_hash_table(H, dun.getNumEdges(), t.getNumNodes());
-
-        //print the candidate content
-        auto nodeID = t.getPostOrder()[pID];
-        std::cout<< "node " << nodeID << std::endl;
-        for (VertexID vertexID = 0; vertexID < t.getNode(nodeID).nodeOrder.size(); vertexID++) {
-            std::cout<< "vertex " <<t.getNode(nodeID).nodeOrder[vertexID] << ": ";
-            for (ui count = 0; count < candCount[nodeID][vertexID]; count++) {
-                std::cout << candidate[nodeID][vertexID][count] << " ";
-            }
-            std::cout<<std::endl;
-        }
-        std::cout<<std::endl;
+#endif
     }
     // all code below is just about freeing the memory, the tiso-count of this tree is already stored in H
     for (VertexID nID = 0; nID < numNodes; ++nID) {
@@ -4289,25 +4290,31 @@ void executeConNode(
                         }
                     }
                     else {
-                        EdgeID e = 0;
-                        if (cn.triEdgeType[mappingSize] != 0) {
-                            int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
-                            if (cn.triEdgeType[mappingSize] == 1)
-                                e = startOffset[pos2] + pos[pos2] - 1;
-                            else if (cn.triEdgeType[mappingSize] == 2)
-                                e = outID[startOffset[pos2] + pos[pos2] - 1];
-                            else if (cn.triEdgeType[mappingSize] == 5)
-                                e = unID[startOffset[pos2] + pos[pos2] - 1];
-                            else {
-                                VertexID key1 = dataV[pos1], key2 = dataV[pos2];
-#ifdef COLLECT_STATISTICS
-                                ++gNumEdgeID;
-#endif
-                                e = dout.getEdgeID(key1, key2);
+                        if (useTriangle) {
+                            EdgeID e = 0;
+                            if (cn.triEdgeType[mappingSize] != 0) {
+                                int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
+                                if (cn.triEdgeType[mappingSize] == 1)
+                                    e = startOffset[pos2] + pos[pos2] - 1;
+                                else if (cn.triEdgeType[mappingSize] == 2)
+                                    e = outID[startOffset[pos2] + pos[pos2] - 1];
+                                else if (cn.triEdgeType[mappingSize] == 5)
+                                    e = unID[startOffset[pos2] + pos[pos2] - 1];
+                                else {
+                                    VertexID key1 = dataV[pos1], key2 = dataV[pos2];
+    #ifdef COLLECT_STATISTICS
+                                    ++gNumEdgeID;
+    #endif
+                                    e = dout.getEdgeID(key1, key2);
+                                }
                             }
+                            generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
+                                            cn.nodeInPos[mappingSize], cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
+                        } else {
+                            generateCandidate(din, dout, dun, dataV, mappingSize, cn.nodeInPos[mappingSize],
+                                      cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
                         }
-                        generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
-                                           cn.nodeInPos[mappingSize], cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
+
                     }
                     // apply the symmetry breaking rules
                     if (!cn.greaterPos[mappingSize].empty()) {
@@ -4379,25 +4386,30 @@ void executeConNode(
                                 }
                             }
                             else {
-                                EdgeID e = 0;
-                                if (cn.triEdgeType[mappingSize] != 0) {
-                                    int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
-                                    if (cn.triEdgeType[mappingSize] == 1)
-                                        e = startOffset[pos2] + pos[pos2] - 1;
-                                    else if (cn.triEdgeType[mappingSize] == 2)
-                                        e = outID[startOffset[pos2] + pos[pos2] - 1];
-                                    else if (cn.triEdgeType[mappingSize] == 5)
-                                        e = unID[startOffset[pos2] + pos[pos2] - 1];
-                                    else {
-                                        VertexID key1 = dataV[pos1], key2 = dataV[pos2];
-#ifdef COLLECT_STATISTICS
-                                        ++gNumEdgeID;
-#endif
-                                        e = dout.getEdgeID(key1, key2);
+                                if (useTriangle) {
+                                    EdgeID e = 0;
+                                    if (cn.triEdgeType[mappingSize] != 0) {
+                                        int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
+                                        if (cn.triEdgeType[mappingSize] == 1)
+                                            e = startOffset[pos2] + pos[pos2] - 1;
+                                        else if (cn.triEdgeType[mappingSize] == 2)
+                                            e = outID[startOffset[pos2] + pos[pos2] - 1];
+                                        else if (cn.triEdgeType[mappingSize] == 5)
+                                            e = unID[startOffset[pos2] + pos[pos2] - 1];
+                                        else {
+                                            VertexID key1 = dataV[pos1], key2 = dataV[pos2];
+    #ifdef COLLECT_STATISTICS
+                                            ++gNumEdgeID;
+    #endif
+                                            e = dout.getEdgeID(key1, key2);
+                                        }
                                     }
+                                    generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
+                                    cn.nodeInPos[mappingSize], cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
+                                } else {
+                                    generateCandidate(din, dout, dun, dataV, mappingSize, cn.nodeInPos[mappingSize], 
+                                    cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
                                 }
-                                generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
-                                                   cn.nodeInPos[mappingSize], cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
                             }
                             // apply the symmetry breaking rules
                             if (!cn.greaterPos[mappingSize].empty()) {
@@ -4499,26 +4511,30 @@ void executeConNode(
                                 }
                             }
                             else {
-                                EdgeID e = 0;
-                                if (cn.triEdgeType[mappingSize] != 0) {
-                                    int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
-                                    if (cn.triEdgeType[mappingSize] == 1)
-                                        e = startOffset[pos2] + pos[pos2] - 1;
-                                    else if (cn.triEdgeType[mappingSize] == 2)
-                                        e = outID[startOffset[pos2] + pos[pos2] - 1];
-                                    else if (cn.triEdgeType[mappingSize] == 5)
-                                        e = unID[startOffset[pos2] + pos[pos2] - 1];
-                                    else {
-                                        VertexID key1 = dataV[pos1], key2 = dataV[pos2];
-#ifdef COLLECT_STATISTICS
-                                        ++gNumEdgeID;
-#endif
-                                        e = dout.getEdgeID(key1, key2);
+                                if (useTriangle) {
+                                    EdgeID e = 0;
+                                    if (cn.triEdgeType[mappingSize] != 0) {
+                                        int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
+                                        if (cn.triEdgeType[mappingSize] == 1)
+                                            e = startOffset[pos2] + pos[pos2] - 1;
+                                        else if (cn.triEdgeType[mappingSize] == 2)
+                                            e = outID[startOffset[pos2] + pos[pos2] - 1];
+                                        else if (cn.triEdgeType[mappingSize] == 5)
+                                            e = unID[startOffset[pos2] + pos[pos2] - 1];
+                                        else {
+                                            VertexID key1 = dataV[pos1], key2 = dataV[pos2];
+    #ifdef COLLECT_STATISTICS
+                                            ++gNumEdgeID;
+    #endif
+                                            e = dout.getEdgeID(key1, key2);
+                                        }
                                     }
+                                    generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
+                                                    cn.nodeInPos[mappingSize], cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
+                                } else {
+                                    generateCandidate(din, dout, dun, dataV, mappingSize, cn.nodeInPos[mappingSize], 
+                                    cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
                                 }
-                                generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
-                                                   cn.nodeInPos[mappingSize], cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
-
                             }
                             // apply the symmetry breaking rules
                             if (!cn.greaterPos[mappingSize].empty()) {
@@ -4586,25 +4602,30 @@ void executeConNode(
                     }
                 }
                 else {
-                    EdgeID e = 0;
-                    if (cn.triEdgeType[mappingSize] != 0) {
-                        int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
-                        if (cn.triEdgeType[mappingSize] == 1)
-                            e = startOffset[pos2] + pos[pos2] - 1;
-                        else if (cn.triEdgeType[mappingSize] == 2)
-                            e = outID[startOffset[pos2] + pos[pos2] - 1];
-                        else if (cn.triEdgeType[mappingSize] == 5)
-                            e = unID[startOffset[pos2] + pos[pos2] - 1];
-                        else {
-                            VertexID key1 = dataV[pos1], key2 = dataV[pos2];
-#ifdef COLLECT_STATISTICS
-                            ++gNumEdgeID;
-#endif
-                            e = dout.getEdgeID(key1, key2);
+                    if (useTriangle) {
+                        EdgeID e = 0;
+                        if (cn.triEdgeType[mappingSize] != 0) {
+                            int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
+                            if (cn.triEdgeType[mappingSize] == 1)
+                                e = startOffset[pos2] + pos[pos2] - 1;
+                            else if (cn.triEdgeType[mappingSize] == 2)
+                                e = outID[startOffset[pos2] + pos[pos2] - 1];
+                            else if (cn.triEdgeType[mappingSize] == 5)
+                                e = unID[startOffset[pos2] + pos[pos2] - 1];
+                            else {
+                                VertexID key1 = dataV[pos1], key2 = dataV[pos2];
+    #ifdef COLLECT_STATISTICS
+                                ++gNumEdgeID;
+    #endif
+                                e = dout.getEdgeID(key1, key2);
+                            }
                         }
-                    }
-                    generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
+                        generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
                                        cn.nodeInPos[mappingSize], cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
+                    } else {
+                        generateCandidate(din, dout, dun, dataV, mappingSize, cn.nodeInPos[mappingSize],
+                                      cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
+                    }                    
                 }
                 // apply the symmetry breaking rules
                 if (!cn.greaterPos[mappingSize].empty()) {
@@ -4690,25 +4711,30 @@ void executeConNode(
                             }
                         }
                         else {
-                            EdgeID e = 0;
-                            if (cn.triEdgeType[mappingSize] != 0) {
-                                int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
-                                if (cn.triEdgeType[mappingSize] == 1)
-                                    e = startOffset[pos2] + pos[pos2] - 1;
-                                else if (cn.triEdgeType[mappingSize] == 2)
-                                    e = outID[startOffset[pos2] + pos[pos2] - 1];
-                                else if (cn.triEdgeType[mappingSize] == 5)
-                                    e = unID[startOffset[pos2] + pos[pos2] - 1];
-                                else {
-                                    VertexID key1 = dataV[pos1], key2 = dataV[pos2];
-#ifdef COLLECT_STATISTICS
-                                    ++gNumEdgeID;
-#endif
-                                    e = dout.getEdgeID(key1, key2);
+                            if (useTriangle) {
+                                EdgeID e = 0;
+                                if (cn.triEdgeType[mappingSize] != 0) {
+                                    int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
+                                    if (cn.triEdgeType[mappingSize] == 1)
+                                        e = startOffset[pos2] + pos[pos2] - 1;
+                                    else if (cn.triEdgeType[mappingSize] == 2)
+                                        e = outID[startOffset[pos2] + pos[pos2] - 1];
+                                    else if (cn.triEdgeType[mappingSize] == 5)
+                                        e = unID[startOffset[pos2] + pos[pos2] - 1];
+                                    else {
+                                        VertexID key1 = dataV[pos1], key2 = dataV[pos2];
+    #ifdef COLLECT_STATISTICS
+                                        ++gNumEdgeID;
+    #endif
+                                        e = dout.getEdgeID(key1, key2);
+                                    }
                                 }
-                            }
-                            generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
+                                generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
                                                cn.nodeInPos[mappingSize], cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
+                            } else {
+                                generateCandidate(din, dout, dun, dataV, mappingSize, cn.nodeInPos[mappingSize],
+                                cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
+                            }
                         }
                         // apply the symmetry breaking rules
                         if (!cn.greaterPos[mappingSize].empty()) {
@@ -4846,26 +4872,30 @@ void executeConNode(
                             }
                         }
                         else {
-                            EdgeID e = 0;
-                            if (cn.triEdgeType[mappingSize] != 0) {
-                                int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
-                                if (cn.triEdgeType[mappingSize] == 1)
-                                    e = startOffset[pos2] + pos[pos2] - 1;
-                                else if (cn.triEdgeType[mappingSize] == 2)
-                                    e = outID[startOffset[pos2] + pos[pos2] - 1];
-                                else if (cn.triEdgeType[mappingSize] == 5)
-                                    e = unID[startOffset[pos2] + pos[pos2] - 1];
-                                else {
-                                    VertexID key1 = dataV[pos1], key2 = dataV[pos2];
-#ifdef COLLECT_STATISTICS
-                                    ++gNumEdgeID;
-#endif
-                                    e = dout.getEdgeID(key1, key2);
+                            if (useTriangle) {
+                                EdgeID e = 0;
+                                if (cn.triEdgeType[mappingSize] != 0) {
+                                    int pos1 = cn.triPos[mappingSize].first, pos2 = cn.triPos[mappingSize].second;
+                                    if (cn.triEdgeType[mappingSize] == 1)
+                                        e = startOffset[pos2] + pos[pos2] - 1;
+                                    else if (cn.triEdgeType[mappingSize] == 2)
+                                        e = outID[startOffset[pos2] + pos[pos2] - 1];
+                                    else if (cn.triEdgeType[mappingSize] == 5)
+                                        e = unID[startOffset[pos2] + pos[pos2] - 1];
+                                    else {
+                                        VertexID key1 = dataV[pos1], key2 = dataV[pos2];
+    #ifdef COLLECT_STATISTICS
+                                        ++gNumEdgeID;
+    #endif
+                                        e = dout.getEdgeID(key1, key2);
+                                    }
                                 }
+                                generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
+                                cn.nodeInPos[mappingSize], cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
+                            } else {
+                                generateCandidate(din, dout, dun, dataV, mappingSize, cn.nodeInPos[mappingSize],
+                                cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
                             }
-                            generateCandidateT(din, dout, dun, tri, dataV, mappingSize, !cn.candPos[mappingSize], e, cn.triEndType[mappingSize],
-                                               cn.nodeInPos[mappingSize], cn.nodeOutPos[mappingSize], cn.nodeUnPos[mappingSize], candidate, candCount, tmp);
-
                         }
                         // apply the symmetry breaking rules
                         if (!cn.greaterPos[mappingSize].empty()) {

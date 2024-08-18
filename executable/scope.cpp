@@ -53,6 +53,9 @@ int main(int argc, char **argv) {
     // Count* ht[MAX_NUM_NODE] == Count* ht[10]
     // ht is a matrix with 10 rows and m+1 columns
     // ht is designed for a single tree, each row is the count for a single node
+
+    // when a tree node's key is an edge, h stores count for edges
+    // that is why we create h with the number of edges instead of the number of vertices
     HashTable ht[MAX_NUM_NODE];
     for (auto & h: ht)
         h = new Count[m + 1];
@@ -64,6 +67,8 @@ int main(int argc, char **argv) {
     // patternV, dataV, startOffset are designed that for each tree node and for each pattern vertex
     // patternV is the current matching query vertex id
     // dataV is the current matched data vertex id
+    // startOffset records the start position of the candidate in the data graph's offset array
+    // for executedTree, only patternV[0] and dataV[0] are used
     VertexID **patternV = new VertexID *[MAX_NUM_NODE];
     VertexID **dataV = new VertexID *[MAX_NUM_NODE];
     EdgeID **startOffset = new EdgeID *[MAX_NUM_NODE];
@@ -76,7 +81,8 @@ int main(int argc, char **argv) {
         visited[i] = new bool[n];
         memset(visited[i], false, sizeof(bool) * n);
     }
-    //tmp and allV are for each data graph vertex
+    // tmp and allV are for each data graph vertex
+    // the tmp array is for holding the intersection results temproarly. Its valus will be assigned to the candidate array later
     VertexID *tmp = new VertexID[n];
     VertexID *allV = new VertexID[n];
     for (VertexID i = 0; i < n; ++i) {
@@ -150,7 +156,7 @@ int main(int argc, char **argv) {
                     }
                 }
             }
-            if (patternGraphs[i].isClique()) {
+            else if (patternGraphs[i].isClique()) {
                 start = std::chrono::steady_clock::now();
                 int k = patternGraphs[i].getNumVertices();
                 mkspecial(sg, k);
@@ -159,98 +165,103 @@ int main(int argc, char **argv) {
                 end = std::chrono::steady_clock::now();
                 elapsedSeconds = end - start;
                 totalExeTime += elapsedSeconds.count();
-            }
-            for (auto it = patterns.begin(); it != patterns.end(); ++it) {
-                int divideFactor = it->first;
-                memset(factorSum, 0, sizeof(Count) * (m + 1));
-                for (int j = 0; j < it->second.size(); ++j) {
-                    for (int j2 = 0; j2 < trees[divideFactor][j].size(); ++j2) {
-                        for (int l = 0; l < trees[divideFactor][j][0].getNumNodes(); ++l) {
-                            memset(ht[l], 0, sizeof(Count) * m);
-                        }
-                        int k = patterns[divideFactor][j].u.getNumVertices();
-                        if (patterns[divideFactor][j].u.isClique() && k >= 4) {
-                            HashTable h = ht[trees[divideFactor][j][j2].getRootID()];
-                            int aggreWeight = trees[divideFactor][j][j2].getAggreWeight()[0];
-                            mkspecial(sg, k);
-                            kclique(k, k, sg, cliqueVertices, h, orbitType);
-                            freesub(sg, k);
-                            if (aggreWeight != 1) {
-                                if (orbitType == 0) h[0] *= aggreWeight;
-                                else if (orbitType == 1) {
-                                    for (VertexID v = 0; v < n; ++v)
-                                        h[v] *= aggreWeight;
-                                }
-                                else {
-                                    for (EdgeID e = 0; e < m; ++e)
-                                        h[e] *= aggreWeight;
-                                }
+            } else {
+                for (auto it = patterns.begin(); it != patterns.end(); ++it) {
+                    int divideFactor = it->first;
+                    memset(factorSum, 0, sizeof(Count) * (m + 1));
+                    for (int j = 0; j < it->second.size(); ++j) {
+                        for (int j2 = 0; j2 < trees[divideFactor][j].size(); ++j2) {
+                            for (int l = 0; l < trees[divideFactor][j][0].getNumNodes(); ++l) {
+                                memset(ht[l], 0, sizeof(Count) * m);
                             }
-                        }
-                        else {
-                            const Tree &t = trees[divideFactor][j][j2];
-                            std::cout << "tree: " << divideFactor << " " << j << " " << j2 << std::endl;
-                            t.print();
-                            it -> second[j].u.printGraph();
-                            if (t.getExecuteMode()) {
-                                executeTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
-                                            ht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV);
+                            int k = patterns[divideFactor][j].u.getNumVertices();
+                            if (patterns[divideFactor][j].u.isClique() && k >= 4) {
+                                HashTable h = ht[trees[divideFactor][j][j2].getRootID()];
+                                int aggreWeight = trees[divideFactor][j][j2].getAggreWeight()[0];
+                                mkspecial(sg, k);
+                                kclique(k, k, sg, cliqueVertices, h, orbitType);
+                                freesub(sg, k);
+                                if (aggreWeight != 1) {
+                                    if (orbitType == 0) h[0] *= aggreWeight;
+                                    else if (orbitType == 1) {
+                                        for (VertexID v = 0; v < n; ++v)
+                                            h[v] *= aggreWeight;
+                                    }
+                                    else {
+                                        for (EdgeID e = 0; e < m; ++e)
+                                            h[e] *= aggreWeight;
+                                    }
+                                }
                             }
                             else {
-                                multiJoinTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
-                                              ht, outID, unID, reverseID, startOffset, patternV, dataV, visited, tmp, allV);
+                                const Tree &t = trees[divideFactor][j][j2];
+    #ifdef PRINT_INTER_RESULTS
+                                std::cout << "tree: " << divideFactor << " " << j << " " << j2 << std::endl;
+                                t.print();
+                                it -> second[j].u.printGraph();
+    #endif
+                                if (t.getExecuteMode()) {
+                                    executeTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
+                                                ht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV);
+                                }
+                                else {
+                                    multiJoinTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
+                                                ht, outID, unID, reverseID, startOffset, patternV, dataV, visited, tmp, allV);
+                                }
                             }
-                        }
-                        // ht is the cout for each node. here h is the count for the root node
-                        HashTable h = ht[trees[divideFactor][j][j2].getRootID()];
-                        int multiFactor = trees[divideFactor][j][j2].getMultiFactor();
-                        if (!resultPath.empty()) {
-                            if (orbitType == 0) factorSum[0] += h[0];
-                            else if (orbitType == 1)
-                                for (VertexID l = 0; l < n; ++l) {
-                                    factorSum[l] += h[l] * multiFactor;
-                                }
-                            else
-                                for (EdgeID l = 0; l < m + 1; ++l) {
-                                    factorSum[l] += h[l] * multiFactor;
-                                }
-                        }
-                        // print the factorSum
-                        std::cout << "factorSum: ";
-                        for (VertexID l = 0; l < n; ++l) {
-                            std::cout << factorSum[l] << " ";
-                        }
-                        std::cout << std::endl << std::endl;
-#ifdef DEBUG
-                        if (divideFactor == 2 && patterns[divideFactor][j].u.getCanonValue() == 281875) {
-                        for (VertexID l = 0; l < n; ++l) {
-                            hPattern[l] += h[l];
-                        }
-                    }
-#endif
-                        for (VertexID nID = 0; nID < trees[divideFactor][j][j2].getNumNodes(); ++nID) {
-                            ++totalNodes;
-                            averageNodeSize += trees[divideFactor][j][j2].getNode(nID).numVertices;
-                            visitedNode.insert(trees[divideFactor][j][j2].getNode(nID).canonValue);
-                            if (nID != trees[divideFactor][j][j2].getPostOrder().back()) {
-                                if (trees[divideFactor][j][j2].getNode(nID).keySize == 1)
-                                    ++numVertexTable;
+                            // ht is the cout for each node. here h is the count for the root node
+                            HashTable h = ht[trees[divideFactor][j][j2].getRootID()];
+                            int multiFactor = trees[divideFactor][j][j2].getMultiFactor();
+                            if (!resultPath.empty()) {
+                                if (orbitType == 0) factorSum[0] += h[0];
+                                else if (orbitType == 1)
+                                    for (VertexID l = 0; l < n; ++l) {
+                                        factorSum[l] += h[l] * multiFactor;
+                                    }
                                 else
-                                    ++numEdgeTable;
+                                    for (EdgeID l = 0; l < m + 1; ++l) {
+                                        factorSum[l] += h[l] * multiFactor;
+                                    }
+                            }
+    #ifdef PRINT_INTER_RESULTS
+                            // print the factorSum
+                            std::cout << "factorSum: ";
+                            for (VertexID l = 0; l < n; ++l) {
+                                std::cout << factorSum[l] << " ";
+                            }
+                            std::cout << std::endl << std::endl;
+    #endif
+    #ifdef DEBUG
+                            if (divideFactor == 2 && patterns[divideFactor][j].u.getCanonValue() == 281875) {
+                            for (VertexID l = 0; l < n; ++l) {
+                                hPattern[l] += h[l];
+                            }
+                        }
+    #endif
+                            for (VertexID nID = 0; nID < trees[divideFactor][j][j2].getNumNodes(); ++nID) {
+                                ++totalNodes;
+                                averageNodeSize += trees[divideFactor][j][j2].getNode(nID).numVertices;
+                                visitedNode.insert(trees[divideFactor][j][j2].getNode(nID).canonValue);
+                                if (nID != trees[divideFactor][j][j2].getPostOrder().back()) {
+                                    if (trees[divideFactor][j][j2].getNode(nID).keySize == 1)
+                                        ++numVertexTable;
+                                    else
+                                        ++numEdgeTable;
+                                }
                             }
                         }
                     }
-                }
-                if (!resultPath.empty()) {
-                    if (orbitType == 0) H[0] += factorSum[0] / divideFactor;
-                    else if (orbitType == 1)
-                        for (VertexID l = 0; l < n; ++l) {
-                            H[l] += factorSum[l] / divideFactor;
-                        }
-                    else
-                        for (EdgeID l = 0; l < m + 1; ++l) {
-                            H[l] += factorSum[l] / divideFactor;
-                        }
+                    if (!resultPath.empty()) {
+                        if (orbitType == 0) H[0] += factorSum[0] / divideFactor;
+                        else if (orbitType == 1)
+                            for (VertexID l = 0; l < n; ++l) {
+                                H[l] += factorSum[l] / divideFactor;
+                            }
+                        else
+                            for (EdgeID l = 0; l < m + 1; ++l) {
+                                H[l] += factorSum[l] / divideFactor;
+                            }
+                    }
                 }
             }
             end = std::chrono::steady_clock::now();

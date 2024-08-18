@@ -6,17 +6,21 @@
         "request": "launch",
         "program": "${workspaceFolder}/build/executable/scope.out",
         "args": [
-            // "-q", "${workspaceFolder}/exp/pattern_graph/6voc/384.txt",
-            "-q", "${workspaceFolder}/exp/pattern_graph/5voc/30.txt",
+            // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/69.txt",
+            // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/30.txt",
+            "-q", "${workspaceFolder}/exp/pattern_graph/6voc/384.txt",
 
             // "-t", "${workspaceFolder}/exp/data_graph/web-spamt.bin",
 
-            "-d", "${workspaceFolder}/exp/data_graph/small_5.txt",
+            // "-d", "${workspaceFolder}/exp/data_graph/small_68.txt",
+            // "-d", "${workspaceFolder}/exp/data_graph/small_30.txt",
+            "-d", "${workspaceFolder}/exp/data_graph/small_384.txt",
             // "-d", "${workspaceFolder}/exp/data_graph/web-spam.txt",
 
-            "-r", "${workspaceFolder}/result/5voc/small_5/30.txt",
-            // "-r", "${workspaceFolder}/result/6voc/small_6/384.txt",
-            // "-r", "${workspaceFolder}/result/6voc/web-spam/384.txt",
+            // "-r", "${workspaceFolder}/result/68.txt",
+            // "-r", "${workspaceFolder}/result/30.txt",
+            "-r", "${workspaceFolder}/result/384.txt",
+            // "-r", "${workspaceFolder}/result/web-spam/",
 
         ],
         "stopAtConnect": false,
