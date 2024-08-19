@@ -256,6 +256,10 @@ bool isConnectedOrder(std::vector<VertexID> order, const PatternGraph &p) {
     return connected;
 }
 
+// the key could be either a vertex or an edge
+// if key is a vertex, all remaining cutSize - 1 vertices combinations are the possible prefix vertices
+// if key is an edge, all cutSize - 2 vertices combinations are the possible prefix vertices
+// allPrefixes includes both above
 std::vector<std::vector<VertexID>> generatePrefixes(VertexID *cut, ui cutSize, const PatternGraph &p) {
     std::vector<std::vector<VertexID>> result;
     // if no cut or cut is a single vertex/edge, prefix is empty
@@ -1889,7 +1893,7 @@ bool iterationNotIncrease(const Tree &t, const Pattern &p, bool prefix) {
             }
         }
         for (int j = 0; j < numNodes; ++j) {
-            if (t.getNode(j).cutSize > 2 || !allPrefix[j].empty())
+            if (t.getNode(postOrder[position + j]).cutSize > 2 || !allPrefix[j].empty())
                 needPrefix = true;
         }
         if (cutIntersection.empty()) {
@@ -1911,6 +1915,7 @@ bool iterationNotIncrease(const Tree &t, const Pattern &p, bool prefix) {
                     if (p.u.isEdge(u, v)) break;
                     if (j == length - 1) connected = false;
                 }
+                // all prefix nodes must be connected
                 if (!connected) break;
                 // for each node, check whether the order has covered its prefix
                 if (i == 0) position = 0;

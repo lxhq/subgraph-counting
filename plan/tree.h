@@ -98,6 +98,7 @@ private:
     std::vector<VertexID> _postOrder;       // postorder of node ID
     bool _executeMode;                      // true: executeTree false: multiJoinTree
     std::vector<int> _partitionPos;         // positions of nodes in the post order that can build full hash tables
+                                            // it is the end position of each partition. so to access the start position of partition i, use _partitionPos[i-1] + 1
     std::vector<std::vector<std::vector<VertexID>>> _nodesAtStep;
     // for partition i, when the jth vertex in _globalOrder[i] is matched, then nodes in _nodesAtStep[i][j] can be executed
     // if use multi join tree, dimension 1 is nID, dimension 2 is mapping size, dimension 3 are the children to call
