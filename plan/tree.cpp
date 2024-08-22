@@ -2725,6 +2725,7 @@ void Tree::initPoses(const Pattern &p, bool useTriangle) {
                     VertexID nID = _postOrder[startPos + j];
                     if (!prefixCovered[j]) {
                         bool flag = true;
+                        // if some of this node's children are not covered, then this node is not covered
                         for (VertexID c : _child[nID]) {
                             // find the position of c in the partition
                             int posC = 99;

@@ -104,7 +104,7 @@ private:
     // if use multi join tree, dimension 1 is nID, dimension 2 is mapping size, dimension 3 are the children to call
     std::vector<std::vector<int>> _prefixPos;
     std::vector<std::vector<VertexID>> _globalOrder;
-    // for node nID, the position of the aggregation vertices
+    // for node nID, the position of the aggregation vertices in nodeOrder
     std::vector<std::vector<int>> _aggrePos;
     // for some vertices there is no intersection of (in-/out-) neighbors
     // for such vertices, we directly assign them neighbor pointers,
@@ -114,6 +114,7 @@ private:
     std::vector<std::vector<bool>> _partitionInterPos;
     std::vector<std::vector<bool>> _nodeInterPos;
     // for node nID, when the mappingSize is i, the positions of in-neighbors are in _nodeInPos[nID][i]
+    // If there are symmtry rules, we use _nodeInPos or nodeOutPos to avoid extra computation, othervise use _nodeUnPos
     std::vector<std::vector<std::vector<int>>> _nodeInPos;
     std::vector<std::vector<std::vector<int>>> _nodeOutPos;
     std::vector<std::vector<std::vector<int>>> _nodeUnPos;
