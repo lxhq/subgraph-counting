@@ -1782,7 +1782,7 @@ void multiJoin(
                 }
                 else memset(H[cID], 0, sizeof(Count) * m);
             }
-            multiJoinWrapper(cID, t, t.getChild()[cID], candidates, candCounts, H, din, dout, dun, true, tri, p, outID, unID,
+            multiJoinWrapper(cID, t, t.getChild()[cID], candidates, candCounts, H, din, dout, dun, false, tri, p, outID, unID,
                              reverseID, startOffsets, patternVs, dataVs, visits, poses, keyPoses, keyPosSizes, sizeBounds, tmp, allV);
             for (int j = 0; j < prefixPos[cID].size(); ++j) {
                 visits[cID][dataVs[cID][j]] = false;
@@ -1874,7 +1874,7 @@ void multiJoin(
                     }
                     else memset(H[cID], 0, sizeof(Count) * m);
                 }
-                multiJoinWrapper(cID, t, t.getChild()[cID], candidates, candCounts, H, din, dout, dun, true, tri, p, outID, unID,
+                multiJoinWrapper(cID, t, t.getChild()[cID], candidates, candCounts, H, din, dout, dun, false, tri, p, outID, unID,
                                  reverseID, startOffsets, patternVs, dataVs, visits, poses, keyPoses, keyPosSizes, sizeBounds, tmp, allV);
                 for (int j = 0; j < prefixPos[cID].size(); ++j) {
                     visits[cID][dataVs[cID][j]] = false;
@@ -2377,7 +2377,7 @@ void multiJoinE(
                 }
                 else memset(H[cID], 0, sizeof(Count) * m);
             }
-            multiJoinWrapper(cID, t, t.getChild()[cID], candidates, candCounts, H, din, dout, dun, true, tri, p, outID, unID,
+            multiJoinWrapper(cID, t, t.getChild()[cID], candidates, candCounts, H, din, dout, dun, false, tri, p, outID, unID,
                              reverseID, startOffsets, patternVs, dataVs, visits, poses, keyPoses, keyPosSizes, sizeBounds, tmp, allV);
             for (int j = 0; j < prefixPos[cID].size(); ++j) {
                 visits[cID][dataVs[cID][j]] = false;
@@ -2491,7 +2491,7 @@ void multiJoinE(
                     }
                     else memset(H[cID], 0, sizeof(Count) * m);
                 }
-                multiJoinWrapper(cID, t, t.getChild()[cID], candidates, candCounts, H, din, dout, dun, true, tri, p, outID, unID,
+                multiJoinWrapper(cID, t, t.getChild()[cID], candidates, candCounts, H, din, dout, dun, false, tri, p, outID, unID,
                                  reverseID, startOffsets, patternVs, dataVs, visits, poses, keyPoses, keyPosSizes, sizeBounds, tmp, allV);
                 for (int j = 0; j < prefixPos[cID].size(); ++j) {
                     visits[cID][dataVs[cID][j]] = false;
