@@ -30,7 +30,7 @@
 
 #define MAX_PATTERN_SIZE 10
 #define MAX_NUM_NODE 10
-#define PRINT_INTER_RESULTS
+//#define PRINT_INTER_RESULTS
 //#define COLLECT_STATISTICS
 //#define ONLY_PLAN
 typedef uint32_t ui;

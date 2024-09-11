@@ -985,6 +985,10 @@ void PatternGraph::buildCorePeripheral() {
         bin[d] = start;
         start += num;
     }
+
+    // similiar to the offset in the Graph class
+    // bin is the start position of vertices in vert
+    // For example bin[3] == 4 means all vertices with degrees == 3 starts at index 4 in vert
     for (int v = 1; v <= _numVertices; ++v) {
         pos[v] = bin[deg[v]];
         vert[pos[v]] = v;
@@ -1006,12 +1010,15 @@ void PatternGraph::buildCorePeripheral() {
                 VertexID u = neighbors[j] + 1;
                 if (deg[u] > deg[v]) {
                     int du = deg[u], pu = pos[u], pw = bin[du], w = vert[pw];
+                    // if u is not the first vertex in its degree bin
+                    // swap u with w, w is the first vertex in its degree bin
                     if(u != w) {
                         pos[u] = pw;
                         vert[pu] = w;
                         pos[w] = pu;
                         vert[pw] = int(u);
                     }
+                    // shrink the range of original u's degree
                     ++bin[du];
                     --deg[u];
                 }

@@ -46,7 +46,9 @@ int main(int argc, char **argv) {
     // what is factorSum?
     // in the computation, we have a list of patterns (trees for each pattern accordingly, and each tree owns its factor \mu)
     // we are going to compute the tiso-count of each tree one by one
-    // the result count with the factor \mu is stored in the factorSum
+    // the result count with the factor \mu is stored in the factorSum accumulated
+    // if orbit is vertex, factorSum stores the local subgraph counting for each vertex
+    // and then when the next pattern is processed, the values in the factorSum will be updated
     HashTable factorSum = new Count[m + 1];
     
     // what is ht? Why it is initialized with the MAX_NUM_NODE
@@ -66,7 +68,7 @@ int main(int argc, char **argv) {
     memset(candPos, 0, sizeof(ui) * (MAX_PATTERN_SIZE));
     // patternV, dataV, startOffset are designed that for each tree node and for each pattern vertex
     // patternV is the current matching query vertex id
-    // dataV is the current matched data vertex id
+    // dataV is the current matched data vertex id (embedding_)
     // startOffset records the start position of the candidate in the data graph's offset array
     // for executedTree, only patternV[0] and dataV[0] are used
     VertexID **patternV = new VertexID *[MAX_NUM_NODE];
@@ -84,6 +86,7 @@ int main(int argc, char **argv) {
     // tmp and allV are for each data graph vertex
     // the tmp array is for holding the intersection results temproarly. Its valus will be assigned to the candidate array later
     VertexID *tmp = new VertexID[n];
+    // I guess allV is for the candidate list for the first vertex (need to verify)
     VertexID *allV = new VertexID[n];
     for (VertexID i = 0; i < n; ++i) {
         allV[i] = i;
