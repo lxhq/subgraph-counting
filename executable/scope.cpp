@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
                             else {
                                 const Tree &t = trees[divideFactor][j][j2];
     #ifdef PRINT_INTER_RESULTS
-                                std::cout << "tree: " << divideFactor << " " << j << " " << j2 << std::endl;
+                                std::cout << "tree: " << j << " " << j2 << std::endl;
                                 t.print();
                                 it -> second[j].u.printGraph();
     #endif

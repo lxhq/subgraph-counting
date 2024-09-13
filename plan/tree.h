@@ -78,7 +78,7 @@ struct Node {
 class Tree {
 private:
     ui _numVertices;
-    int _multiFactor;
+    int _multiFactor;                      // multiFactor is related to symmetry-breaking rules
     Node *_nodes;
     std::vector<VertexID>* _v2n;           // for each pattern vertex, store the nodes that contains it.
     ui _numNodes;

@@ -231,7 +231,6 @@ bool genEquation(const PatternGraph &p, std::map<int, std::vector<Pattern>> &pat
     // insert peripheral vertices into the tree 
     std::vector<Tree> rootBestDecomp = getBestDecomposition(rootPattern, rootAllTree, visitedDecomp, true, prefix,
                                                             useTriangle);
-    // I guess multi-factor is \mu in the paper
     int uFactor = p.getAutoSize() / rootBestDecomp[0].getMultiFactor() / rootBestDecomp[0].getAggreWeight().size();
     Tree &rt = rootBestDecomp[0];
     //Find common vertices among nodes and children nodes
