@@ -999,6 +999,16 @@ void executeNodeEdgeKey(
                         ++gNumUpdate;
 #endif
                         h[e] += cnt;
+                        // print out the embedding
+                        // for (int i = 0; i < mappingSize + 1; ++i) {
+                        //     std::cout << dataV[i] << " ";
+                        // }
+                        // std::cout << std::endl;
+                        // for (int i = 0; i < 23; i++) {
+                        //     std::cout << h[i] << " ";
+                        // }
+                        // std::cout << std::endl;
+                        // end of print
                         if (keyPosSize < sizeBound) {
                             keyPos[keyPosSize] = e;
                             ++keyPosSize;
@@ -1443,6 +1453,8 @@ void executePartition(
     }
     ui *partitionCandCount = new ui[partitionOrder.size()];
     // for each node, store the keys whose values are not 0
+    // those keys will be cleared to 0 before the next visit of this node begins
+    // If the used entries is larger m / 8. we just clear the whole hashtable
     ui **keyPos = new ui *[t.getNumNodes()];
     for (int i = startPos; i < endPos; ++i) {
         VertexID nID = postOrder[i];
@@ -1453,7 +1465,6 @@ void executePartition(
         else if (t.getNode(nID).keySize == 2)
             keyPos[nID] = new ui[m / 8 + 1];
     }
-
     ui *keyPosSize = new ui[t.getNumNodes()];
     memset(keyPosSize, 0, sizeof(ui) * (t.getNumNodes()));
     partitionCandidate[0] = allV;
@@ -1537,6 +1548,16 @@ void executePartition(
                         executeNodeEdgeKeyT(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, tri, p, false, outID, unID, reverseID, startOffset,
                                             patternV, dataV, mappingSize + 1, visited, pos, keyPos[nID], keyPosSize[nID], m / 8, tmp, allV);
                     }
+                    // print the hash table
+                    // std::cout << "hash table at node " << nID << " " <<std::endl;
+                    // for (int i = 0; i < t.getNumNodes(); i++) {
+                    //     for (int j = 0; j < m; j++) {
+                    //         std::cout << H[i][j] << " ";
+                    //     }
+                    //     std::cout << std::endl;
+                    // }
+                    // std::cout << std::endl;
+                    // end of printing
 #ifdef PRINT_INTER_RESULTS
                     print_hash_table(H, m, t.getNumNodes());
 #endif
@@ -1672,6 +1693,7 @@ void executeTree (
     }
 
     // (What is a partition?)for each partition, calls executePartition to build a full hash table
+    // I guess a partition is a group of nodes that share a common prefix
     for (VertexID pID = 0; pID < t.getPartitionPos().size(); ++pID) {
         executePartition(pID, t, candidate, candCount, H, din, dout, dun, useTriangle, tri,
                          p, outID, unID, reverseID, startOffset, patternV, dataV, visited, pos, tmp, allV);

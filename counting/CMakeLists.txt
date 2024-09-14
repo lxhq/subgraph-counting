@@ -6,3 +6,6 @@ set (COUNTING_SRC
 
 add_library(counting ${COUNTING_SRC})
 target_link_libraries(counting graph plan utility)
+
+find_package(TBB REQUIRED)
+target_link_libraries(counting TBB::tbb)

@@ -169,6 +169,42 @@ int main(int argc, char **argv) {
                 elapsedSeconds = end - start;
                 totalExeTime += elapsedSeconds.count();
             } else {
+                // print: in each pattern, common nodes among all trees
+                // if m > 1
+                // print format: node_cannon_value: m (appears in m different trees) 
+                // std::map<CanonType, ui> commonNodes;
+                // ui total_trees = 0;
+                // for (auto it = trees.begin(); it != trees.end(); it++) {
+                //     int divideFactor = it->first;
+                //     for (int j = 0; j < it->second.size(); ++j) {
+                //         for (int j2 = 0; j2 < trees[divideFactor][j].size(); ++j2) {
+                //             const Tree &t = trees[divideFactor][j][j2];
+                //             total_trees++;
+                //             std::set<CanonType> unique_node_conons;
+                //             for (VertexID nID = 0; nID < t.getNumNodes(); ++nID) {
+                //                 unique_node_conons.insert(t.getNode(nID).canonValue);
+                //             }
+                //             for (auto node_conon : unique_node_conons) {
+                //                 if (commonNodes.find(node_conon) == commonNodes.end()) {
+                //                     commonNodes[node_conon] = 1;
+                //                 } else {
+                //                     commonNodes[node_conon] += 1;
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
+                // std::cout << std::endl;
+                // for (auto it = commonNodes.begin(); it != commonNodes.end(); it++) {
+                //     if (it->second > 1) {
+                //         std::cout << "node: " << it->first << " " << it->second << std::endl;
+                //     }
+                // }
+                // std::cout << "total trees: " << total_trees << std::endl;
+                // if (batchQuery)
+                //     std::cout << "file: " << files[i] << std::endl;
+                // continue;
+                // end of print
                 for (auto it = patterns.begin(); it != patterns.end(); ++it) {
                     int divideFactor = it->first;
                     memset(factorSum, 0, sizeof(Count) * (m + 1));
