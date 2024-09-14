@@ -570,6 +570,242 @@ void executeNode(
     }
 }
 
+void PexecuteNode(
+        VertexID nID,
+        const Tree &t,
+        const std::vector<VertexID> &child,
+        VertexID **candidate,
+        ui *candCount,
+        HashTable *H,
+        const DataGraph &din,
+        const DataGraph &dout,
+        const DataGraph &dun,
+        const Pattern &p,
+        bool isRoot,
+        EdgeID *outID,
+        EdgeID *unID,
+        EdgeID *reverseID,
+        EdgeID *startOffset,
+        VertexID *patternV,
+        VertexID *dataV,
+        int mappingSize,
+        bool *visited,
+        ui *pos,
+        ui *keyPos,
+        ui &keyPosSize,
+        ui sizeBound,
+        VertexID *&tmp,
+        VertexID *allV
+) {
+    int num_threads = 10;
+    tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);
+    tbb::task_group taskGroup;
+
+    int orbitType = t.getOrbitType();
+    HashTable h = H[nID];
+    const Node &tau = t.getNode(nID);
+    const std::vector<int> &aggrePos = t.getAggrePos(nID);
+    const std::vector<bool> &nodeInterPos = t.getNodeInterPos(nID);
+    const std::vector<std::vector<int>> &nodeInPos = t.getNodeInPos(nID);
+    const std::vector<std::vector<int>> &nodeOutPos = t.getNodeOutPos(nID);
+    const std::vector<std::vector<int>> &nodeUnPos = t.getNodeUnPos(nID);
+    const std::vector<std::vector<int>> &greaterPos = t.getNodeGreaterPos(nID);
+    const std::vector<std::vector<int>> &lessPos = t.getNodeLessPos(nID);
+    const std::vector<std::vector<int>> &childKeyPos = t.getChildKeyPos(nID);
+    const std::vector<VertexID> &aggreV = t.getAggreV();
+    const std::vector<int> &aggreWeight = t.getAggreWeight();
+    EdgeID *inOffset = din.getOffsets();
+    VertexID *inNbors = din.getNbors();
+    EdgeID *outOffset = dout.getOffsets();
+    VertexID *outNbors = dout.getNbors();
+    EdgeID *unOffset = dun.getOffsets();
+    VertexID *unNbors = dun.getNbors();
+
+    ui n = din.getNumVertices();
+    if (mappingSize == 0) {
+        candidate[0] = allV;
+        candCount[0] = n;
+        pos[mappingSize] = 0;
+    }
+    else {
+        if (!nodeInterPos[mappingSize]) {
+            if (!nodeOutPos[mappingSize].empty()) {
+                VertexID v = dataV[nodeOutPos[mappingSize][0]];
+                startOffset[mappingSize] = outOffset[v];
+                candidate[mappingSize] = outNbors + outOffset[v];
+                candCount[mappingSize] = outOffset[v + 1] - outOffset[v];
+            }
+            else if (!nodeInPos[mappingSize].empty()){
+                VertexID v = dataV[nodeInPos[mappingSize][0]];
+                startOffset[mappingSize] = inOffset[v];
+                candidate[mappingSize] = inNbors + inOffset[v];
+                candCount[mappingSize] = inOffset[v + 1] - inOffset[v];
+            }
+            else {
+                VertexID v = dataV[nodeUnPos[mappingSize][0]];
+                startOffset[mappingSize] = unOffset[v];
+                candidate[mappingSize] = unNbors + unOffset[v];
+                candCount[mappingSize] = unOffset[v + 1] - unOffset[v];
+            }
+        }
+        else {
+            generateCandidate(din, dout, dun, dataV, mappingSize, nodeInPos[mappingSize],
+                              nodeOutPos[mappingSize], nodeUnPos[mappingSize], candidate, candCount, tmp);
+        }
+        pos[mappingSize] = 0;
+        // apply the symmetry breaking rules
+        if (!greaterPos[mappingSize].empty()) {
+            ui maxTarget = dataV[greaterPos[mappingSize][0]];
+            for (int i = 1; i < greaterPos[mappingSize].size(); ++i) {
+                if (dataV[greaterPos[mappingSize][i]] > maxTarget)
+                    maxTarget = dataV[greaterPos[mappingSize][i]];
+            }
+            pos[mappingSize] = firstPosGreaterThan(candidate[mappingSize], 0, candCount[mappingSize], maxTarget);
+        }
+        if (!lessPos[mappingSize].empty()) {
+            ui minTarget = dataV[lessPos[mappingSize][0]];
+            for (int i = 1; i < lessPos[mappingSize].size(); ++i) {
+                if (dataV[lessPos[mappingSize][i]] < minTarget)
+                    minTarget = dataV[lessPos[mappingSize][i]];
+            }
+            candCount[mappingSize] = firstPosGreaterThan(candidate[mappingSize], 0, candCount[mappingSize], minTarget);
+        }
+    }
+
+    int depth = 0;
+    while (depth >= 0) {
+        while (pos[mappingSize] < candCount[mappingSize]) {
+            VertexID v = candidate[mappingSize][pos[mappingSize]];
+            ++pos[mappingSize];
+            if (visited[v]) continue;
+            // inside a tree node, we are computing the iso-match, so we need to check if the vertex is visited
+            visited[v] = true;
+            patternV[mappingSize] = tau.nodeOrder[mappingSize];
+            dataV[mappingSize] = v;
+
+            if (depth == tau.localOrder.size() - 1) {
+#ifdef COLLECT_STATISTICS
+                ++gNumMatch;
+#endif
+                Count cnt = 1;
+                // multiply count in children
+                for (int j = 0; j < child.size(); ++j) {
+                    VertexID cID = child[j];
+                    cnt *= H[cID][dataV[childKeyPos[j][0]]];
+                }
+                if (isRoot) {
+                    if (orbitType == 0) h[0] += cnt * aggreWeight[0];
+                    else if (orbitType == 1) {
+                        for (int j = 0; j < aggreV.size(); ++j) {
+#ifdef COLLECT_STATISTICS
+                            ++gNumUpdate;
+#endif
+                            VertexID key = dataV[aggrePos[j]];
+                            h[key] += cnt * aggreWeight[j];
+                        }
+                    }
+                }
+                else {
+#ifdef COLLECT_STATISTICS
+                    ++gNumUpdate;
+#endif
+                    h[dataV[aggrePos[0]]] += cnt;
+                    if (keyPosSize < sizeBound) {
+                        keyPos[keyPosSize] = dataV[aggrePos[0]];
+                        ++keyPosSize;
+                    }
+                }
+                visited[dataV[mappingSize]] = false;
+            }
+            else {
+#ifdef COLLECT_STATISTICS
+                ++gNumIntermediate;
+#endif
+                ++mappingSize;
+                ++depth;
+                pos[mappingSize] = 0;
+                if (!nodeInterPos[mappingSize]) {
+                    if (!nodeOutPos[mappingSize].empty()) {
+                        VertexID w = dataV[nodeOutPos[mappingSize][0]];
+                        startOffset[mappingSize] = outOffset[w];
+                        candidate[mappingSize] = outNbors + outOffset[w];
+                        candCount[mappingSize] = outOffset[w + 1] - outOffset[w];
+                    }
+                    else if (!nodeInPos[mappingSize].empty()){
+                        VertexID w = dataV[nodeInPos[mappingSize][0]];
+                        startOffset[mappingSize] = inOffset[w];
+                        candidate[mappingSize] = inNbors + inOffset[w];
+                        candCount[mappingSize] = inOffset[w + 1] - inOffset[w];
+                    }
+                    else {
+                        // why not use dataV[mappingSize - 1] here?
+                        VertexID w = dataV[nodeUnPos[mappingSize][0]];
+                        startOffset[mappingSize] = unOffset[w];
+                        candidate[mappingSize] = unNbors + unOffset[w];
+                        candCount[mappingSize] = unOffset[w + 1] - unOffset[w];
+                    }
+                }
+                else {
+                    generateCandidate(din, dout, dun, dataV, mappingSize, nodeInPos[mappingSize],
+                                      nodeOutPos[mappingSize], nodeUnPos[mappingSize], candidate, candCount, tmp);
+                }
+                // apply the symmetry breaking rules
+                if (!greaterPos[mappingSize].empty()) {
+                    ui maxTarget = dataV[greaterPos[mappingSize][0]];
+                    for (int i = 1; i < greaterPos[mappingSize].size(); ++i) {
+                        if (dataV[greaterPos[mappingSize][i]] > maxTarget)
+                            maxTarget = dataV[greaterPos[mappingSize][i]];
+                    }
+                    pos[mappingSize] = firstPosGreaterThan(candidate[mappingSize], 0, candCount[mappingSize], maxTarget);
+                }
+                if (!lessPos[mappingSize].empty()) {
+                    ui minTarget = dataV[lessPos[mappingSize][0]];
+                    for (int i = 1; i < lessPos[mappingSize].size(); ++i) {
+                        if (dataV[lessPos[mappingSize][i]] < minTarget)
+                            minTarget = dataV[lessPos[mappingSize][i]];
+                    }
+                    candCount[mappingSize] = firstPosGreaterThan(candidate[mappingSize], 0, candCount[mappingSize], minTarget);
+                }
+            }
+        }
+        --depth;
+        if (depth >= 0) {
+            --mappingSize;
+            visited[dataV[mappingSize]] = false;
+        }
+    }
+}
+
+void PexecuteNodeEdgeKey(
+        VertexID nID,
+        const Tree &t,
+        const std::vector<VertexID> &child,
+        VertexID **candidate,
+        ui *candCount,
+        HashTable *H,
+        const DataGraph &din,
+        const DataGraph &dout,
+        const DataGraph &dun,
+        const Pattern &p,
+        bool isRoot,
+        EdgeID *outID,
+        EdgeID *unID,
+        EdgeID *reverseID,
+        EdgeID *startOffset,
+        VertexID *patternV,
+        VertexID *dataV,
+        int mappingSize,
+        bool *visited,
+        ui *pos,
+        ui *keyPos,
+        ui &keyPosSize,
+        ui sizeBound,
+        VertexID *&tmp,
+        VertexID *allV
+) {
+
+}
+
 void executeNodeT(
         VertexID nID,
         const Tree &t,

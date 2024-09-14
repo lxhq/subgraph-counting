@@ -12,6 +12,7 @@
 #include "compute_set_intersection.h"
 #include "forest.h"
 #include "triangle.h"
+#include "Pexecution.h"
 
 extern Count gNumIntersect;
 extern Count gNumMatch;
@@ -98,6 +99,34 @@ void executeNode(
         VertexID *allV
 );
 
+void PexecuteNode(
+        VertexID nID,
+        const Tree &t,
+        const std::vector<VertexID> &child,
+        VertexID **candidate,
+        ui *candCount,
+        HashTable *H,
+        const DataGraph &din,
+        const DataGraph &dout,
+        const DataGraph &dun,
+        const Pattern &p,
+        bool isRoot,
+        EdgeID *outID,
+        EdgeID *unID,
+        EdgeID *reverseID,
+        EdgeID *startOffset,
+        VertexID *patternV,
+        VertexID *dataV,
+        int mappingSize,
+        bool *visited,
+        ui *pos,
+        ui *keyPos,
+        ui &keyPosSize,
+        ui sizeBound,
+        VertexID *&tmp,
+        VertexID *allV
+);
+
 void executeNodeT(
         VertexID nID,
         const Tree &t,
@@ -128,6 +157,34 @@ void executeNodeT(
 );
 
 void executeNodeEdgeKey(
+        VertexID nID,
+        const Tree &t,
+        const std::vector<VertexID> &child,
+        VertexID **candidate,
+        ui *candCount,
+        HashTable *H,
+        const DataGraph &din,
+        const DataGraph &dout,
+        const DataGraph &dun,
+        const Pattern &p,
+        bool isRoot,
+        EdgeID *outID,
+        EdgeID *unID,
+        EdgeID *reverseID,
+        EdgeID *startOffset,
+        VertexID *patternV,
+        VertexID *dataV,
+        int mappingSize,
+        bool *visited,
+        ui *pos,
+        ui *keyPos,
+        ui &keyPosSize,
+        ui sizeBound,
+        VertexID *&tmp,
+        VertexID *allV
+);
+
+void PexecuteNodeEdgeKey(
         VertexID nID,
         const Tree &t,
         const std::vector<VertexID> &child,
