@@ -597,10 +597,6 @@ void PexecuteNode(
         VertexID *&tmp,
         VertexID *allV
 ) {
-    int num_threads = 10;
-    tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);
-    tbb::task_group taskGroup;
-
     int orbitType = t.getOrbitType();
     HashTable h = H[nID];
     const Node &tau = t.getNode(nID);
@@ -671,108 +667,83 @@ void PexecuteNode(
             candCount[mappingSize] = firstPosGreaterThan(candidate[mappingSize], 0, candCount[mappingSize], minTarget);
         }
     }
+    if (candCount[mappingSize] == 0) return;
 
-    int depth = 0;
-    while (depth >= 0) {
-        while (pos[mappingSize] < candCount[mappingSize]) {
-            VertexID v = candidate[mappingSize][pos[mappingSize]];
-            ++pos[mappingSize];
-            if (visited[v]) continue;
-            // inside a tree node, we are computing the iso-match, so we need to check if the vertex is visited
-            visited[v] = true;
-            patternV[mappingSize] = tau.nodeOrder[mappingSize];
-            dataV[mappingSize] = v;
+    int num_threads = 2;
+    tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);
+    tbb::task_group taskGroup;
+    WorkerBFS worker(
+            num_threads,
+            taskGroup,
+            nID,
+            t,
+            child,
+            candidate,
+            candCount,
+            H,
+            din,
+            dout,
+            dun,
+            p,
+            isRoot,
+            outID,
+            unID,
+            reverseID,
+            startOffset,
+            patternV,
+            dataV,
+            mappingSize,
+            visited,
+            pos,
+            keyPos,
+            keyPosSize,
+            sizeBound,
+            tmp,
+            allV
+    );
 
-            if (depth == tau.localOrder.size() - 1) {
-#ifdef COLLECT_STATISTICS
-                ++gNumMatch;
-#endif
-                Count cnt = 1;
-                // multiply count in children
-                for (int j = 0; j < child.size(); ++j) {
-                    VertexID cID = child[j];
-                    cnt *= H[cID][dataV[childKeyPos[j][0]]];
-                }
-                if (isRoot) {
-                    if (orbitType == 0) h[0] += cnt * aggreWeight[0];
-                    else if (orbitType == 1) {
-                        for (int j = 0; j < aggreV.size(); ++j) {
-#ifdef COLLECT_STATISTICS
-                            ++gNumUpdate;
-#endif
-                            VertexID key = dataV[aggrePos[j]];
-                            h[key] += cnt * aggreWeight[j];
-                        }
-                    }
-                }
-                else {
-#ifdef COLLECT_STATISTICS
-                    ++gNumUpdate;
-#endif
-                    h[dataV[aggrePos[0]]] += cnt;
-                    if (keyPosSize < sizeBound) {
-                        keyPos[keyPosSize] = dataV[aggrePos[0]];
-                        ++keyPosSize;
-                    }
-                }
-                visited[dataV[mappingSize]] = false;
-            }
-            else {
-#ifdef COLLECT_STATISTICS
-                ++gNumIntermediate;
-#endif
-                ++mappingSize;
-                ++depth;
-                pos[mappingSize] = 0;
-                if (!nodeInterPos[mappingSize]) {
-                    if (!nodeOutPos[mappingSize].empty()) {
-                        VertexID w = dataV[nodeOutPos[mappingSize][0]];
-                        startOffset[mappingSize] = outOffset[w];
-                        candidate[mappingSize] = outNbors + outOffset[w];
-                        candCount[mappingSize] = outOffset[w + 1] - outOffset[w];
-                    }
-                    else if (!nodeInPos[mappingSize].empty()){
-                        VertexID w = dataV[nodeInPos[mappingSize][0]];
-                        startOffset[mappingSize] = inOffset[w];
-                        candidate[mappingSize] = inNbors + inOffset[w];
-                        candCount[mappingSize] = inOffset[w + 1] - inOffset[w];
-                    }
-                    else {
-                        // why not use dataV[mappingSize - 1] here?
-                        VertexID w = dataV[nodeUnPos[mappingSize][0]];
-                        startOffset[mappingSize] = unOffset[w];
-                        candidate[mappingSize] = unNbors + unOffset[w];
-                        candCount[mappingSize] = unOffset[w + 1] - unOffset[w];
-                    }
-                }
-                else {
-                    generateCandidate(din, dout, dun, dataV, mappingSize, nodeInPos[mappingSize],
-                                      nodeOutPos[mappingSize], nodeUnPos[mappingSize], candidate, candCount, tmp);
-                }
-                // apply the symmetry breaking rules
-                if (!greaterPos[mappingSize].empty()) {
-                    ui maxTarget = dataV[greaterPos[mappingSize][0]];
-                    for (int i = 1; i < greaterPos[mappingSize].size(); ++i) {
-                        if (dataV[greaterPos[mappingSize][i]] > maxTarget)
-                            maxTarget = dataV[greaterPos[mappingSize][i]];
-                    }
-                    pos[mappingSize] = firstPosGreaterThan(candidate[mappingSize], 0, candCount[mappingSize], maxTarget);
-                }
-                if (!lessPos[mappingSize].empty()) {
-                    ui minTarget = dataV[lessPos[mappingSize][0]];
-                    for (int i = 1; i < lessPos[mappingSize].size(); ++i) {
-                        if (dataV[lessPos[mappingSize][i]] < minTarget)
-                            minTarget = dataV[lessPos[mappingSize][i]];
-                    }
-                    candCount[mappingSize] = firstPosGreaterThan(candidate[mappingSize], 0, candCount[mappingSize], minTarget);
-                }
-            }
+    std::list<ui*> partial_matches;
+    for (ui i = 0; i < candCount[mappingSize]; i++) {
+        ui* partial_match = new ui[tau.nodeOrder.size()];
+        for (ui j = 0; j < mappingSize; j++) {
+            partial_match[j] = dataV[j];
         }
-        --depth;
-        if (depth >= 0) {
-            --mappingSize;
-            visited[dataV[mappingSize]] = false;
+        partial_match[mappingSize] = candidate[mappingSize][i];
+        partial_matches.push_back(partial_match);
+    }
+
+    while (mappingSize < tau.nodeOrder.size() - 1) {
+        mappingSize += 1;
+        patternV[mappingSize] = tau.nodeOrder[mappingSize];
+        std::vector<std::list<ui*>> sublists = WorkerBFS::evenly_splice(partial_matches, num_threads);
+        for (std::list<ui*>& sublist : sublists) {
+            taskGroup.run([&worker, &sublist, mappingSize]() {
+                worker(sublist, mappingSize);
+            });
+        }   
+        taskGroup.wait();
+
+        for (ui i = 0; i < num_threads; i++) {
+            partial_matches.splice(partial_matches.end(), worker._total_extented_matches[i]);
         }
+    }
+
+    // update the hash table and keyPos from the hashtable of each threads
+    for (ui i = 0; i < num_threads; i++) {
+        for (ui j = 0; j < dun.getNumEdges(); j++) {
+            h[j] += worker._total_hash_table[i][j];
+            worker._total_hash_table[i][j] = 0;
+        }
+    }
+    for (ui i = 0; i < num_threads; i++) {
+        if (h[i] != 0 && keyPosSize < sizeBound) {
+            keyPos[keyPosSize] = i;
+            keyPosSize += 1;
+        }
+    }
+
+    for (ui* partial_match : partial_matches) {
+        delete [] partial_match;
     }
 }
 
@@ -1662,7 +1633,7 @@ void executePartition(
             VertexID nID = postOrder[i];
             isRoot = endPos == postOrder.size() && i == endPos - 1;
             if (!t.nodeEdgeKey(nID) && !useTriangle) {
-                executeNode(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, p, isRoot, outID, unID, reverseID,
+                PexecuteNode(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, p, isRoot, outID, unID, reverseID,
                             startOffset, patternV, dataV, 0, visited, pos, nullptr, argument, argument, tmp, allV);
             }
             else if (!t.nodeEdgeKey(nID) && useTriangle) {
@@ -1719,7 +1690,7 @@ void executePartition(
             for (VertexID nID: nodesAtStep[pID][depth]) {
                 if (nID == postOrder[endPos - 1]) {
                     if (!t.nodeEdgeKey(nID) && !useTriangle) {
-                        executeNode(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, p, isRoot, outID, unID, reverseID,
+                        PexecuteNode(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, p, isRoot, outID, unID, reverseID,
                                     startOffset, patternV, dataV, mappingSize + 1, visited, pos, nullptr, argument, argument, tmp, allV);
                     }
                     else if (!t.nodeEdgeKey(nID) && useTriangle) {
@@ -1751,7 +1722,7 @@ void executePartition(
                     if (t.getNode(nID).keySize == 1) sizeBound = n / 8 + 1;
                     if (t.getNode(nID).keySize == 2) sizeBound = m / 8 + 1;
                     if (!t.nodeEdgeKey(nID) && !useTriangle) {
-                        executeNode(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, p, false, outID, unID, reverseID,
+                        PexecuteNode(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, p, false, outID, unID, reverseID,
                                     startOffset, patternV, dataV, mappingSize + 1, visited, pos, keyPos[nID], keyPosSize[nID], sizeBound, tmp, allV);
                     }
                     else if (!t.nodeEdgeKey(nID) && useTriangle) {

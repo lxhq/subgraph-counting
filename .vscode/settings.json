@@ -62,6 +62,9 @@
         "thread": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "list": "cpp",
+        "shared_mutex": "cpp",
+        "cfenv": "cpp"
     }
 }

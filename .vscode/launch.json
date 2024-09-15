@@ -18,9 +18,9 @@
 
             // "-d", "${workspaceFolder}/exp/data_graph/small_68.txt",
             // "-d", "${workspaceFolder}/exp/data_graph/small_30.txt",
-            "-d", "${workspaceFolder}/exp/data_graph/small_384.txt",
+            // "-d", "${workspaceFolder}/exp/data_graph/small_384.txt",
             // "-d", "${workspaceFolder}/exp/data_graph/small_26.txt",
-            // "-d", "${workspaceFolder}/exp/data_graph/web-spam.txt",
+            "-d", "${workspaceFolder}/exp/data_graph/web-spam.txt",
 
             // "-r", "${workspaceFolder}/result/68.txt",
             // "-r", "${workspaceFolder}/result/30.txt",
