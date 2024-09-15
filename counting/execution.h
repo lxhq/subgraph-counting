@@ -99,34 +99,6 @@ void executeNode(
         VertexID *allV
 );
 
-void PexecuteNode(
-        VertexID nID,
-        const Tree &t,
-        const std::vector<VertexID> &child,
-        VertexID **candidate,
-        ui *candCount,
-        HashTable *H,
-        const DataGraph &din,
-        const DataGraph &dout,
-        const DataGraph &dun,
-        const Pattern &p,
-        bool isRoot,
-        EdgeID *outID,
-        EdgeID *unID,
-        EdgeID *reverseID,
-        EdgeID *startOffset,
-        VertexID *patternV,
-        VertexID *dataV,
-        int mappingSize,
-        bool *visited,
-        ui *pos,
-        ui *keyPos,
-        ui &keyPosSize,
-        ui sizeBound,
-        VertexID *&tmp,
-        VertexID *allV
-);
-
 void executeNodeT(
         VertexID nID,
         const Tree &t,
@@ -157,34 +129,6 @@ void executeNodeT(
 );
 
 void executeNodeEdgeKey(
-        VertexID nID,
-        const Tree &t,
-        const std::vector<VertexID> &child,
-        VertexID **candidate,
-        ui *candCount,
-        HashTable *H,
-        const DataGraph &din,
-        const DataGraph &dout,
-        const DataGraph &dun,
-        const Pattern &p,
-        bool isRoot,
-        EdgeID *outID,
-        EdgeID *unID,
-        EdgeID *reverseID,
-        EdgeID *startOffset,
-        VertexID *patternV,
-        VertexID *dataV,
-        int mappingSize,
-        bool *visited,
-        ui *pos,
-        ui *keyPos,
-        ui &keyPosSize,
-        ui sizeBound,
-        VertexID *&tmp,
-        VertexID *allV
-);
-
-void PexecuteNodeEdgeKey(
         VertexID nID,
         const Tree &t,
         const std::vector<VertexID> &child,
@@ -263,6 +207,53 @@ void executePartition(
         ui *pos,
         VertexID *&tmp,
         VertexID *allV
+);
+
+void executePartition(
+        VertexID pID,
+        const Tree &t,
+        VertexID ***candidate,
+        ui **candCount,
+        HashTable *H,
+        const DataGraph &din,
+        const DataGraph &dout,
+        const DataGraph &dun,
+        bool useTriangle,
+        const Triangle &tri,
+        const Pattern &p,
+        EdgeID *outID,
+        EdgeID *unID,
+        EdgeID *reverseID,
+        EdgeID *startOffset,
+        VertexID *patternV,
+        VertexID *dataV,
+        bool *visited,
+        ui *pos,
+        VertexID *&tmp,
+        VertexID *allV,
+        ParallelProcessingMeta &pMeta
+);
+
+void executeTree(
+        const Tree &t,
+        const DataGraph &din,
+        const DataGraph &dout,
+        const DataGraph &dun,
+        bool useTriangle,
+        const Triangle &tri,
+        const Pattern &p,
+        HashTable *H,
+        EdgeID *outID,
+        EdgeID *unID,
+        EdgeID *reverseID,
+        EdgeID *startOffset,
+        VertexID *patternV,
+        VertexID *dataV,
+        bool *visited,
+        ui *pos,
+        VertexID *&tmp,
+        VertexID *allV,
+        ParallelProcessingMeta &pMeta
 );
 
 void executeTree(

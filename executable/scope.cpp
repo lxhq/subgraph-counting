@@ -4,6 +4,7 @@
 
 #include "command.h"
 #include "execution.h"
+#include "Pexecution.h"
 
 int main(int argc, char **argv) {
     Command cmd(argc, argv);
@@ -98,6 +99,12 @@ int main(int argc, char **argv) {
     ui totalNumPatterns = 0, totalNodes = 0;
     double averageNodeSize = 0.0;
     int numVertexTable = 0, numEdgeTable = 0;
+
+    int num_threads = 1;
+    tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);
+    tbb::task_group taskGroup;
+    ParallelProcessingMeta pMeta(num_threads, taskGroup, din, dout, dun, ht);
+
     if (!shareNode) {
         std::vector<HashTable> mathCalH(patternGraphs.size());
         std::vector<int> orbitTypes(patternGraphs.size());
@@ -241,7 +248,7 @@ int main(int argc, char **argv) {
     #endif
                                 if (t.getExecuteMode()) {
                                     executeTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
-                                                ht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV);
+                                                ht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV, pMeta);
                                 }
                                 else {
                                     multiJoinTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
