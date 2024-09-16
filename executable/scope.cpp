@@ -65,6 +65,8 @@ int main(int argc, char **argv) {
     // candPos is for each pattern vertex
     // elements in candPos is a pointer points to the current matched data vertex candidate in the candidate list
     // candPos[mappingSize] points to a data vertex in the candidate[nodeID][mappingSize] array to be matched
+    // candPos is used for paratition prefix
+    // startoffset is used for node enumeration
     ui *candPos = new ui[MAX_PATTERN_SIZE];
     memset(candPos, 0, sizeof(ui) * (MAX_PATTERN_SIZE));
     // patternV, dataV, startOffset are designed that for each tree node and for each pattern vertex
@@ -102,8 +104,7 @@ int main(int argc, char **argv) {
 
     int num_threads = 1;
     tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);
-    tbb::task_group taskGroup;
-    ParallelProcessingMeta pMeta(num_threads, taskGroup, din, dout, dun, ht);
+    ParallelProcessingMeta pMeta(num_threads, din, dout, dun);
 
     if (!shareNode) {
         std::vector<HashTable> mathCalH(patternGraphs.size());

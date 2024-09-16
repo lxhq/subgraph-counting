@@ -667,4 +667,111 @@ void executeForest(Forest &f, std::vector<HashTable> &result, const DataGraph &d
                    EdgeID *startOffset, VertexID *patternV, VertexID *dataV, bool *visited, ui *candPos,
                    VertexID *&tmp, VertexID *allV, specialsparse *sg, VertexID *cliqueVertices);
 
+struct Task {
+public:
+        ui _start;
+        ui _end;
+        ui _depth;
+        ui* _dataV;
+        ui* _patternV;
+        Task(ui start, ui end, ui depth, ui* dataV, ui* patternV) : _start(start), _end(end), _depth(depth) {
+                _dataV = new ui[MAX_PATTERN_SIZE];
+                _patternV = new ui[MAX_PATTERN_SIZE];
+                std::copy(dataV, dataV + MAX_PATTERN_SIZE, _dataV);
+                std::copy(patternV, patternV + MAX_PATTERN_SIZE, _patternV);
+        }
+
+        ~Task() {
+                delete[] _dataV;
+                delete[] _patternV;
+        }
+};
+
+class ExecutePartitionWorker {
+public:
+        ParallelProcessingMeta &pMeta;
+        const Tree &t;
+        const std::vector<std::vector<VertexID>> &globalOrder;
+        const std::vector<std::vector<std::vector<VertexID>>> &nodesAtStep;
+        const std::vector<VertexID> &partitionOrder;
+        const std::vector<std::vector<VertexID>> &child;
+        const std::vector<VertexID> &postOrder;
+        const std::vector<int> &partitionPos;
+        const std::vector<std::vector<int>> &partitionInPos;
+        const std::vector<std::vector<int>> &partitionOutPos;
+        const std::vector<std::vector<int>> &partitionUnPos;
+        const std::vector<bool> &partitionInterPos;
+        const std::vector<std::vector<int>> &greaterPos;
+        const std::vector<std::vector<int>> &lessPos;
+        const std::vector<bool> &partitionCandPos;
+        const std::vector<std::pair<int, int>> &partitionTriPos;
+        const std::vector<int> &triEdgeType;
+        const std::vector<int> &triEndType;
+        EdgeID *inOffset;
+        VertexID *inNbors;
+        EdgeID *outOffset;
+        VertexID *outNbors;
+        EdgeID *unOffset;
+        EdgeID *unNbors;
+        const DataGraph &din;
+        const DataGraph &dout;
+        const DataGraph &dun;
+        bool useTriangle;
+        const Triangle &tri;
+        EdgeID *outID;
+        EdgeID *unID;
+        EdgeID *reverseID;
+        VertexID pID;
+        const Pattern &p;
+        const std::vector<std::vector<VertexID>> &allChild;
+        int endPos;
+        bool isRoot;
+        VertexID *allV;
+
+        ExecutePartitionWorker(
+                ParallelProcessingMeta &pMeta,
+                const Tree &t,
+                const std::vector<std::vector<VertexID>> &globalOrder,
+                const std::vector<std::vector<std::vector<VertexID>>> &nodesAtStep,
+                const std::vector<VertexID> &partitionOrder,
+                const std::vector<std::vector<VertexID>> &child,
+                const std::vector<VertexID> &postOrder,
+                const std::vector<int> &partitionPos,
+                const std::vector<std::vector<int>> &partitionInPos,
+                const std::vector<std::vector<int>> &partitionOutPos,
+                const std::vector<std::vector<int>> &partitionUnPos,
+                const std::vector<bool> &partitionInterPos,
+                const std::vector<std::vector<int>> &greaterPos,
+                const std::vector<std::vector<int>> &lessPos,
+                const std::vector<bool> &partitionCandPos,
+                const std::vector<std::pair<int, int>> &partitionTriPos,
+                const std::vector<int> &triEdgeType,
+                const std::vector<int> &triEndType,
+                EdgeID *inOffset,
+                VertexID *inNbors,
+                EdgeID *outOffset,
+                VertexID *outNbors,
+                EdgeID *unOffset,
+                EdgeID *unNbors,
+                const DataGraph &din,
+                const DataGraph &dout,
+                const DataGraph &dun,
+                bool useTriangle,
+                const Triangle &tri,
+                EdgeID *outID,
+                EdgeID *unID,
+                EdgeID *reverseID,
+                VertexID pID,
+                const Pattern &p,
+                const std::vector<std::vector<VertexID>> &allChild,
+                int endPos,
+                bool isRoot,
+                VertexID *allV
+        );
+
+        ~ExecutePartitionWorker();
+
+        void operator()(Task* task);
+};
+
 #endif //SCOPE_EXECUTION_H
