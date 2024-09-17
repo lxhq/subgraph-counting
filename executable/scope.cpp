@@ -8,6 +8,11 @@
 
 int main(int argc, char **argv) {
     Command cmd(argc, argv);
+    // ui num_threads = 10;
+    // ui node_partition_size = 500;
+    // ui prefix_partition_size = 100;
+    // std::string mode = "single";
+
     std::string queryGraphPath = cmd.getQueryGraphPath();
     std::string dataGraphPath = cmd.getDataGraphPath();
     std::string resultPath = cmd.getResultPath();
@@ -15,6 +20,14 @@ int main(int argc, char **argv) {
     bool batchQuery = cmd.getBatchQuery();
     bool shareNode = cmd.getShareNode();
     bool useTriangle = !trianglePath.empty();
+    std::string mode = cmd.getExecutionMode();
+    if (mode != "single" && mode != "parallel") {
+        std::cerr << "Invalid mode: " << mode << std::endl;
+        exit(1);
+    }
+    ui num_threads = cmd.getNumThreads();
+    ui node_partition_size = cmd.getNodePartitionSize();
+    ui prefix_partition_size = cmd.getPrefixPartitionSize();
     std::cout << "query graph path: " << queryGraphPath << std::endl;
     std::cout << "data graph path: " << dataGraphPath << std::endl;
     std::cout << "result path: " << resultPath << std::endl;
@@ -22,6 +35,12 @@ int main(int argc, char **argv) {
     std::cout << "sharing nodes computation: " << shareNode << std::endl;
     std::cout << "using triangle: " << useTriangle << std::endl;
     std::cout << "set intersection type: " << SI << std::endl;
+    std::cout << "mode: " << mode << std::endl;
+    if (mode == "parallel") {
+        std::cout << "number of threads: " << num_threads << std::endl;
+        std::cout << "node partition size: " << node_partition_size << std::endl;
+        std::cout << "prefix partition size: " << prefix_partition_size << std::endl;
+    }
     DataGraph dun = DataGraph();
     dun.loadDataGraph(dataGraphPath);
     const DataGraph din = constructDirectedDataGraph(dun, false);
@@ -101,10 +120,11 @@ int main(int argc, char **argv) {
     ui totalNumPatterns = 0, totalNodes = 0;
     double averageNodeSize = 0.0;
     int numVertexTable = 0, numEdgeTable = 0;
-
-    int num_threads = 10;
-    tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);
-    ParallelProcessingMeta pMeta(num_threads, din, dout, dun);
+    tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);   
+    ParallelProcessingMeta *pMeta = nullptr;
+    if (mode == "parallel") {
+        pMeta = new ParallelProcessingMeta(num_threads, node_partition_size, prefix_partition_size, din, dout, dun);
+    }
 
     if (!shareNode) {
         std::vector<HashTable> mathCalH(patternGraphs.size());
@@ -177,42 +197,6 @@ int main(int argc, char **argv) {
                 elapsedSeconds = end - start;
                 totalExeTime += elapsedSeconds.count();
             } else {
-                // print: in each pattern, common nodes among all trees
-                // if m > 1
-                // print format: node_cannon_value: m (appears in m different trees) 
-                // std::map<CanonType, ui> commonNodes;
-                // ui total_trees = 0;
-                // for (auto it = trees.begin(); it != trees.end(); it++) {
-                //     int divideFactor = it->first;
-                //     for (int j = 0; j < it->second.size(); ++j) {
-                //         for (int j2 = 0; j2 < trees[divideFactor][j].size(); ++j2) {
-                //             const Tree &t = trees[divideFactor][j][j2];
-                //             total_trees++;
-                //             std::set<CanonType> unique_node_conons;
-                //             for (VertexID nID = 0; nID < t.getNumNodes(); ++nID) {
-                //                 unique_node_conons.insert(t.getNode(nID).canonValue);
-                //             }
-                //             for (auto node_conon : unique_node_conons) {
-                //                 if (commonNodes.find(node_conon) == commonNodes.end()) {
-                //                     commonNodes[node_conon] = 1;
-                //                 } else {
-                //                     commonNodes[node_conon] += 1;
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
-                // std::cout << std::endl;
-                // for (auto it = commonNodes.begin(); it != commonNodes.end(); it++) {
-                //     if (it->second > 1) {
-                //         std::cout << "node: " << it->first << " " << it->second << std::endl;
-                //     }
-                // }
-                // std::cout << "total trees: " << total_trees << std::endl;
-                // if (batchQuery)
-                //     std::cout << "file: " << files[i] << std::endl;
-                // continue;
-                // end of print
                 for (auto it = patterns.begin(); it != patterns.end(); ++it) {
                     int divideFactor = it->first;
                     memset(factorSum, 0, sizeof(Count) * (m + 1));
@@ -221,9 +205,11 @@ int main(int argc, char **argv) {
                             for (int l = 0; l < trees[divideFactor][j][0].getNumNodes(); ++l) {
                                 memset(ht[l], 0, sizeof(Count) * m);
                             }
-                            for (int i = 0; i < pMeta._num_threads; i++) {
-                                for (int l = 0; l < trees[divideFactor][j][0].getNumNodes(); ++l) {
-                                    memset(pMeta._total_hash_table[i][l], 0, sizeof(Count) * (m));
+                            if (mode == "parallel") {
+                                for (int i = 0; i < pMeta->_num_threads; i++) {
+                                    for (int l = 0; l < trees[divideFactor][j][0].getNumNodes(); ++l) {
+                                        memset(pMeta->_total_hash_table[i][l], 0, sizeof(Count) * (m));
+                                    }
                                 }
                             }
                             int k = patterns[divideFactor][j].u.getNumVertices();
@@ -247,14 +233,15 @@ int main(int argc, char **argv) {
                             }
                             else {
                                 const Tree &t = trees[divideFactor][j][j2];
-    #ifdef PRINT_INTER_RESULTS
-                                std::cout << "tree: " << j << " " << j2 << std::endl;
-                                t.print();
-                                it -> second[j].u.printGraph();
-    #endif
                                 if (t.getExecuteMode()) {
-                                    executeTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
-                                                ht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV, pMeta);
+                                    if (mode == "single") {
+                                        executeTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
+                                                ht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV);
+                                    } else {
+                                       executeTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
+                                                ht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV, pMeta); 
+                                    }
+
                                 }
                                 else {
                                     multiJoinTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
@@ -275,14 +262,6 @@ int main(int argc, char **argv) {
                                         factorSum[l] += h[l] * multiFactor;
                                     }
                             }
-    #ifdef PRINT_INTER_RESULTS
-                            // print the factorSum
-                            std::cout << "factorSum: ";
-                            for (VertexID l = 0; l < n; ++l) {
-                                std::cout << factorSum[l] << " ";
-                            }
-                            std::cout << std::endl << std::endl;
-    #endif
     #ifdef DEBUG
                             if (divideFactor == 2 && patterns[divideFactor][j].u.getCanonValue() == 281875) {
                             for (VertexID l = 0; l < n; ++l) {

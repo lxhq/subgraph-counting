@@ -27,6 +27,11 @@
             "-r", "${workspaceFolder}/result/384.txt",
             // "-r", "${workspaceFolder}/result/26.txt",
             // "-r", "${workspaceFolder}/result/web-spam/",
+
+            "-m", "single",
+            "-n", "10",
+            "-np", "500",
+            "-nn", "100"
         ],
         "stopAtConnect": false,
         "cwd": "${workspaceFolder}",

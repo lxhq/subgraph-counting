@@ -11,12 +11,14 @@
 
 class ParallelProcessingMeta {
 public:
-    int _num_threads;
+    ui _num_threads;
+    ui _node_partition_size;
+    ui _prefix_partition_size;
     tbb::enumerable_thread_specific<int> _thread_id_ets;
     std::atomic<int> _next_thread_id;
 
     // allocate memory for each thread
-    HashTable** _total_hash_table; 
+    HashTable** _total_hash_table;
     ui**** _total_candidates;
     ui*** _total_candidates_cnt;
     EdgeID** _total_start_offset;
@@ -27,7 +29,10 @@ public:
     ui** _total_key_pos_size;
     bool** _total_visited_vertices;
     VertexID** _total_tmp;
-    ParallelProcessingMeta(int num_threads, 
+    ParallelProcessingMeta(){}
+    ParallelProcessingMeta(ui num_threads,
+                    ui _node_partition_size,
+                    ui _prefix_partition_size,
                     const DataGraph& din,
                     const DataGraph& dout, 
                     const DataGraph& dun);

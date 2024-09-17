@@ -16,6 +16,10 @@ enum OptionKeyword {
     ResultPath = 4,         // -r, the result file path
     BatchQuery = 5,         // -b, batch query or single query
     ShareNode = 6,          // -share, enable sharing nodes or not
+    ExecutionMode = 7,      // -m, execution mode (single or parallel)
+    NumThreads = 8,         // -n, number of threads
+    NodePartitionSize = 9,  // -np, node partition size
+    PrefixPartitionSize = 10, // -pp, prefix partition size
 };
 
 class Command : public CommandParser {
@@ -53,6 +57,22 @@ public:
 
     bool getShareNode() {
         return booleanOptionValue[OptionKeyword::ShareNode];
+    }
+
+    std::string getExecutionMode() {
+        return optionsValue[OptionKeyword::ExecutionMode];
+    }
+
+    int getNumThreads() {
+        return intOptionValue[OptionKeyword::NumThreads];
+    }
+
+    int getNodePartitionSize() {
+        return intOptionValue[OptionKeyword::NodePartitionSize];
+    }
+
+    int getPrefixPartitionSize() {
+        return intOptionValue[OptionKeyword::PrefixPartitionSize];
     }
 };
 

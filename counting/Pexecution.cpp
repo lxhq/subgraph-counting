@@ -1,11 +1,15 @@
 #include "Pexecution.h"
 
 ParallelProcessingMeta::ParallelProcessingMeta(
-    int num_threads, 
+    ui num_threads,
+    ui node_partition_size,
+    ui prefix_partition_size,
     const DataGraph& din,
     const DataGraph& dout, 
     const DataGraph& dun) : 
     _num_threads(num_threads),
+    _node_partition_size(node_partition_size),
+    _prefix_partition_size(prefix_partition_size),
     _thread_id_ets(-1),
     _next_thread_id(0) {
     
