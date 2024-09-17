@@ -671,7 +671,7 @@ struct Task {
 public:
         ui _start;
         ui _end;
-        ui _depth;
+        int _depth;
         ui* _dataV;
         ui* _patternV;
         Task(ui start, ui end, ui depth, ui* dataV, ui* patternV) : _start(start), _end(end), _depth(depth) {

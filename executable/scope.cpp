@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     double averageNodeSize = 0.0;
     int numVertexTable = 0, numEdgeTable = 0;
 
-    int num_threads = 1;
+    int num_threads = 10;
     tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);
     ParallelProcessingMeta pMeta(num_threads, din, dout, dun);
 

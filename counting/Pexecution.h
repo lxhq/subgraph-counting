@@ -31,6 +31,13 @@ public:
                     const DataGraph& din,
                     const DataGraph& dout, 
                     const DataGraph& dun);
+    void setCandidates(const Tree& t, const DataGraph& dout);
+    void clearCandidates(const Tree& t);
+    void setPartitionCandidates(const Tree& t, const std::vector<VertexID>& partitionOrder, 
+                                const std::vector<bool> &partitionCandPos, const DataGraph& dout, 
+                                const std::vector<VertexID> &postOrder, int startPos, int endPos, ui n, ui m);
+    void clearPartitionCandidates(const std::vector<VertexID>& partitionOrder, const std::vector<bool> &partitionCandPos, 
+                                  const std::vector<VertexID> &postOrder, int startPos, int endPos);
     ~ParallelProcessingMeta();
 };
 

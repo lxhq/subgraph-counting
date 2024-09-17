@@ -465,7 +465,6 @@ void executeNode(
             candCount[mappingSize] = firstPosGreaterThan(candidate[mappingSize], 0, candCount[mappingSize], minTarget);
         }
     }
-
     int depth = 0;
     while (depth >= 0) {
         while (pos[mappingSize] < candCount[mappingSize]) {
@@ -999,16 +998,6 @@ void executeNodeEdgeKey(
                         ++gNumUpdate;
 #endif
                         h[e] += cnt;
-                        // print out the embedding
-                        // for (int i = 0; i < mappingSize + 1; ++i) {
-                        //     std::cout << dataV[i] << " ";
-                        // }
-                        // std::cout << std::endl;
-                        // for (int i = 0; i < 23; i++) {
-                        //     std::cout << h[i] << " ";
-                        // }
-                        // std::cout << std::endl;
-                        // end of print
                         if (keyPosSize < sizeBound) {
                             keyPos[keyPosSize] = e;
                             ++keyPosSize;
@@ -1476,6 +1465,7 @@ void executePartition(
     partitionCandCount[0] = n;
     pos[0] = 0;
     // depth iterate through the pattern vertices in the partition order
+    pMeta.setPartitionCandidates(t, partitionOrder, partitionCandPos, dout, postOrder, startPos, endPos, n, m);
     int depth = 0;
     auto start = std::chrono::high_resolution_clock::now();
     tbb::task_group taskGroup;
@@ -1522,7 +1512,7 @@ void executePartition(
         allV
     );
     ui* tmpArray = new VertexID[MAX_PATTERN_SIZE];
-    for (ui i = 0; i < partitionCandCount[0]; i++) {
+    for (ui i = 0; i < partitionCandCount[0]; i+=init_partition_size) {
         ui start = i;
         ui end = std::min(i + init_partition_size, partitionCandCount[0]);  // Ensure we don't go past the end
         Task* task = new Task(start, end, depth, tmpArray, tmpArray);
@@ -1530,9 +1520,14 @@ void executePartition(
             worker(task);
         });
     }
-    delete [] tmpArray;
     taskGroup.wait();
+    delete [] tmpArray;
+    pMeta.clearPartitionCandidates(partitionOrder, partitionCandPos, postOrder, startPos, endPos);
+
     // combine the results from all threads
+    for (ui i = 0; i < pMeta._num_threads; i++) {
+
+    }
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -1876,16 +1871,16 @@ void executeTree (
                 candidate[nID][i] = new VertexID[dout.getNumVertices()];
         }
     }
+    pMeta.setCandidates(t, dout);
 
     // (What is a partition?)for each partition, calls executePartition to build a full hash table
     // I guess a partition is a group of nodes that share a common prefix
     for (VertexID pID = 0; pID < t.getPartitionPos().size(); ++pID) {
+        std::cout << "Partition " << pID << std::endl;
         executePartition(pID, t, candidate, candCount, H, din, dout, dun, useTriangle, tri,
                          p, outID, unID, reverseID, startOffset, patternV, dataV, visited, pos, tmp, allV, pMeta);
-#ifdef PRINT_INTER_RESULTS
-        print_hash_table(H, dun.getNumEdges(), t.getNumNodes());
-#endif
     }
+    pMeta.clearCandidates(t);
     // all code below is just about freeing the memory, the tiso-count of this tree is already stored in H
     for (VertexID nID = 0; nID < numNodes; ++nID) {
         const Node &tau = t.getNode(nID);
@@ -6089,13 +6084,13 @@ void ExecutePartitionWorker::operator()(Task* task) {
         pMeta._thread_id_ets.local() = pMeta._next_thread_id.fetch_add(1);
     }
     ui argument = 0;
-    ui depth = task->_depth;
+    int depth = task->_depth;
     ui mappingSize = depth;
     ui* dataV = task->_dataV;
     ui* patternV = task->_patternV;
 
     int thread_id = pMeta._thread_id_ets.local();
-    VertexID* tmp = pMeta._total_tmp[thread_id];
+    VertexID*& tmp = pMeta._total_tmp[thread_id];
     HashTable* H = pMeta._total_hash_table[thread_id];
     ui** partitionCandidate = pMeta._total_partition_candidates[thread_id];
     ui* partitionCandCount = pMeta._total_partition_candidates_cnt[thread_id];
@@ -6112,16 +6107,12 @@ void ExecutePartitionWorker::operator()(Task* task) {
     ui m = dun.getNumEdges();
     if (depth == 0) {
         // initialize the partition
-        partitionCandCount[0] = 0;
-        pos[0] = 0;
-        for (ui i = task->_start; i < task->_end; ++i) {
-            partitionCandidate[0][i] = allV[i];
-            partitionCandCount[0] += 1;
-        }
+        pos[0] = task->_start;
+        partitionCandidate[0] = allV;
+        partitionCandCount[0] = task->_end;
     } else {
 
     }
-
     while (depth >= 0) {
         while (pos[depth] < partitionCandCount[depth]) {
             VertexID v = partitionCandidate[depth][pos[depth]];
