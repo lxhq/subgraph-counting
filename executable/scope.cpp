@@ -8,11 +8,6 @@
 
 int main(int argc, char **argv) {
     Command cmd(argc, argv);
-    // ui num_threads = 10;
-    // ui node_partition_size = 500;
-    // ui prefix_partition_size = 100;
-    // std::string mode = "single";
-
     std::string queryGraphPath = cmd.getQueryGraphPath();
     std::string dataGraphPath = cmd.getDataGraphPath();
     std::string resultPath = cmd.getResultPath();
