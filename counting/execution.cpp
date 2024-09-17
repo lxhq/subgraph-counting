@@ -569,6 +569,234 @@ void executeNode(
     }
 }
 
+void parallelNodeWorker(ParallelProcessingMeta &pMeta, 
+                        Task* task,
+                        const DataGraph &din,
+                        const DataGraph &dout,
+                        const DataGraph &dun,
+                        const std::vector<VertexID> &child,
+                        bool isRoot,
+                        HashTable *H,
+                        int orbitType,
+                        const Node &tau,
+                        const std::vector<int> &aggrePos,
+                        const std::vector<bool> &nodeInterPos,
+                        const std::vector<std::vector<int>> &nodeInPos,
+                        const std::vector<std::vector<int>> &nodeOutPos,
+                        const std::vector<std::vector<int>> &nodeUnPos,
+                        const std::vector<std::vector<int>> &greaterPos,
+                        const std::vector<std::vector<int>> &lessPos,
+                        const std::vector<std::vector<int>> &childKeyPos,
+                        const std::vector<VertexID> &aggreV,
+                        const std::vector<int> &aggreWeight,
+                        EdgeID *inOffset,
+                        VertexID *inNbors,
+                        EdgeID *outOffset,
+                        VertexID *outNbors,
+                        EdgeID *unOffset,
+                        VertexID *unNbors,
+                        VertexID nID,
+                        VertexID *allV) {
+
+    if (pMeta._thread_id_ets.local() == -1) {
+        pMeta._thread_id_ets.local() = pMeta._next_thread_id.fetch_add(1);
+    }
+
+    int thread_id = pMeta._thread_id_ets.local();
+    VertexID*& tmp = pMeta._total_tmp[thread_id];
+    HashTable h = pMeta._total_hash_table[thread_id][nID];
+    ui* startOffset = pMeta._total_start_offset[thread_id];
+    bool* visited = pMeta._total_visited_vertices[thread_id];
+    ui** candidate = pMeta._total_candidates[thread_id][nID];
+    ui* candCount = pMeta._total_candidates_cnt[thread_id][nID];
+    ui* pos = new ui[tau.localOrder.size()];
+
+    int depth = task->_depth;
+    ui start = task->_start;
+    ui end = task->_end;
+    ui mappingSize = 0;
+    ui* patternV = task->_patternV;
+    ui* dataV = task->_dataV;
+    ui *keyPos = nullptr;
+    ui keyPosSize = 0;
+    ui sizeBound = 0;
+
+    pos[mappingSize] = start;
+    candCount[mappingSize] = end;
+    candidate[mappingSize] = allV;
+
+    while (depth >= 0) {
+        while (pos[mappingSize] < candCount[mappingSize]) {
+            VertexID v = candidate[mappingSize][pos[mappingSize]];
+            ++pos[mappingSize];
+            if (visited[v]) continue;
+            // inside a tree node, we are computing the iso-match, so we need to check if the vertex is visited
+            visited[v] = true;
+            patternV[mappingSize] = tau.nodeOrder[mappingSize];
+            dataV[mappingSize] = v;
+
+            if (depth == tau.localOrder.size() - 1) {
+                Count cnt = 1;
+                // multiply count in children
+                for (int j = 0; j < child.size(); ++j) {
+                    VertexID cID = child[j];
+                    cnt *= H[cID][dataV[childKeyPos[j][0]]];
+                }
+                if (isRoot) {
+                    if (orbitType == 0) h[0] += cnt * aggreWeight[0];
+                    else if (orbitType == 1) {
+                        for (int j = 0; j < aggreV.size(); ++j) {
+                            VertexID key = dataV[aggrePos[j]];
+                            h[key] += cnt * aggreWeight[j];
+                        }
+                    }
+                }
+                else {
+                    h[dataV[aggrePos[0]]] += cnt;
+                    if (keyPosSize < sizeBound) {
+                        keyPos[keyPosSize] = dataV[aggrePos[0]];
+                        ++keyPosSize;
+                    }
+                }
+                visited[dataV[mappingSize]] = false;
+            }
+            else {
+                ++mappingSize;
+                ++depth;
+                pos[mappingSize] = 0;
+                if (!nodeInterPos[mappingSize]) {
+                    if (!nodeOutPos[mappingSize].empty()) {
+                        VertexID w = dataV[nodeOutPos[mappingSize][0]];
+                        startOffset[mappingSize] = outOffset[w];
+                        candidate[mappingSize] = outNbors + outOffset[w];
+                        candCount[mappingSize] = outOffset[w + 1] - outOffset[w];
+                    }
+                    else if (!nodeInPos[mappingSize].empty()){
+                        VertexID w = dataV[nodeInPos[mappingSize][0]];
+                        startOffset[mappingSize] = inOffset[w];
+                        candidate[mappingSize] = inNbors + inOffset[w];
+                        candCount[mappingSize] = inOffset[w + 1] - inOffset[w];
+                    }
+                    else {
+                        // why not use dataV[mappingSize - 1] here?
+                        VertexID w = dataV[nodeUnPos[mappingSize][0]];
+                        startOffset[mappingSize] = unOffset[w];
+                        candidate[mappingSize] = unNbors + unOffset[w];
+                        candCount[mappingSize] = unOffset[w + 1] - unOffset[w];
+                    }
+                }
+                else {
+                    generateCandidate(din, dout, dun, dataV, mappingSize, nodeInPos[mappingSize],
+                                      nodeOutPos[mappingSize], nodeUnPos[mappingSize], candidate, candCount, tmp);
+                }
+                // apply the symmetry breaking rules
+                if (!greaterPos[mappingSize].empty()) {
+                    ui maxTarget = dataV[greaterPos[mappingSize][0]];
+                    for (int i = 1; i < greaterPos[mappingSize].size(); ++i) {
+                        if (dataV[greaterPos[mappingSize][i]] > maxTarget)
+                            maxTarget = dataV[greaterPos[mappingSize][i]];
+                    }
+                    pos[mappingSize] = firstPosGreaterThan(candidate[mappingSize], 0, candCount[mappingSize], maxTarget);
+                }
+                if (!lessPos[mappingSize].empty()) {
+                    ui minTarget = dataV[lessPos[mappingSize][0]];
+                    for (int i = 1; i < lessPos[mappingSize].size(); ++i) {
+                        if (dataV[lessPos[mappingSize][i]] < minTarget)
+                            minTarget = dataV[lessPos[mappingSize][i]];
+                    }
+                    candCount[mappingSize] = firstPosGreaterThan(candidate[mappingSize], 0, candCount[mappingSize], minTarget);
+                }
+            }
+        }
+        --depth;
+        if (depth >= 0) {
+            --mappingSize;
+            visited[dataV[mappingSize]] = false;
+        }
+    }
+    delete task;
+    delete pos;
+}
+
+void PexecuteNode(
+        VertexID nID,
+        const Tree &t,
+        const std::vector<VertexID> &child,
+        VertexID **candidate,
+        ui *candCount,
+        HashTable *H,
+        const DataGraph &din,
+        const DataGraph &dout,
+        const DataGraph &dun,
+        const Pattern &p,
+        bool isRoot,
+        EdgeID *outID,
+        EdgeID *unID,
+        EdgeID *reverseID,
+        EdgeID *startOffset,
+        VertexID *patternV,
+        VertexID *dataV,
+        int mappingSize,
+        bool *visited,
+        ui *pos,
+        ui *keyPos,
+        ui &keyPosSize,
+        ui sizeBound,
+        VertexID *&tmp,
+        VertexID *allV,
+        ParallelProcessingMeta &pMeta
+) {
+    int orbitType = t.getOrbitType();
+    HashTable h = H[nID];
+    const Node &tau = t.getNode(nID);
+    const std::vector<int> &aggrePos = t.getAggrePos(nID);
+    const std::vector<bool> &nodeInterPos = t.getNodeInterPos(nID);
+    const std::vector<std::vector<int>> &nodeInPos = t.getNodeInPos(nID);
+    const std::vector<std::vector<int>> &nodeOutPos = t.getNodeOutPos(nID);
+    const std::vector<std::vector<int>> &nodeUnPos = t.getNodeUnPos(nID);
+    const std::vector<std::vector<int>> &greaterPos = t.getNodeGreaterPos(nID);
+    const std::vector<std::vector<int>> &lessPos = t.getNodeLessPos(nID);
+    const std::vector<std::vector<int>> &childKeyPos = t.getChildKeyPos(nID);
+    const std::vector<VertexID> &aggreV = t.getAggreV();
+    const std::vector<int> &aggreWeight = t.getAggreWeight();
+    EdgeID *inOffset = din.getOffsets();
+    VertexID *inNbors = din.getNbors();
+    EdgeID *outOffset = dout.getOffsets();
+    VertexID *outNbors = dout.getNbors();
+    EdgeID *unOffset = dun.getOffsets();
+    VertexID *unNbors = dun.getNbors();
+
+    ui n = din.getNumVertices();
+
+    tbb::task_group taskGroup;
+    int depth = 0;
+    ui init_partition_size = 1000;
+    ui* tmpArray = new VertexID[MAX_PATTERN_SIZE];
+    for (ui i = 0; i < n; i += init_partition_size) {
+        ui start = i;
+        ui end = std::min(i + init_partition_size, n);
+        Task* task = new Task(start, end, depth, tmpArray, tmpArray);
+        taskGroup.run([&pMeta, task, &din, &dout, &dun, &child, isRoot, H, orbitType, &tau, &aggrePos, 
+                    &nodeInterPos, &nodeInPos, &nodeOutPos, &nodeUnPos, &greaterPos, &lessPos, &childKeyPos,
+                    &aggreV, &aggreWeight, inOffset, inNbors, outOffset, outNbors, unOffset, unNbors, nID, allV]() {
+            parallelNodeWorker(pMeta, task, din, dout, dun, child, isRoot, H, orbitType, tau, aggrePos, 
+                    nodeInterPos, nodeInPos, nodeOutPos, nodeUnPos, greaterPos, lessPos, childKeyPos, aggreV, 
+                    aggreWeight, inOffset, inNbors, outOffset, outNbors, unOffset, unNbors, nID, allV);
+        });
+    }
+    taskGroup.wait();
+    delete [] tmpArray;
+    
+    //combine the results from all threads
+    for (ui i = 0; i < pMeta._num_threads; i++) {
+        HashTable thread_local_H = pMeta._total_hash_table[i][nID];
+        for (ui j = 0; j < dun.getNumEdges(); j++) {
+            h[j] += thread_local_H[j];
+            thread_local_H[j] = 0;
+        }
+    }
+}
+
 void executeNodeT(
         VertexID nID,
         const Tree &t,
@@ -1417,8 +1645,8 @@ void executePartition(
             VertexID nID = postOrder[i];
             isRoot = endPos == postOrder.size() && i == endPos - 1;
             if (!t.nodeEdgeKey(nID) && !useTriangle) {
-                executeNode(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, p, isRoot, outID, unID, reverseID,
-                            startOffset, patternV, dataV, 0, visited, pos, nullptr, argument, argument, tmp, allV);
+                PexecuteNode(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, p, isRoot, outID, unID, reverseID,
+                            startOffset, patternV, dataV, 0, visited, pos, nullptr, argument, argument, tmp, allV, pMeta);
             }
             else if (!t.nodeEdgeKey(nID) && useTriangle) {
                 executeNodeT(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, tri, p, isRoot, outID, unID, reverseID,
@@ -1947,9 +2175,9 @@ void executeTree (
     for (VertexID pID = 0; pID < t.getPartitionPos().size(); ++pID) {
         executePartition(pID, t, candidate, candCount, H, din, dout, dun, useTriangle, tri,
                          p, outID, unID, reverseID, startOffset, patternV, dataV, visited, pos, tmp, allV);
-#ifdef PRINT_INTER_RESULTS
+// #ifdef PRINT_INTER_RESULTS
         print_hash_table(H, dun.getNumEdges(), t.getNumNodes());
-#endif
+// #endif
     }
     // all code below is just about freeing the memory, the tiso-count of this tree is already stored in H
     for (VertexID nID = 0; nID < numNodes; ++nID) {
