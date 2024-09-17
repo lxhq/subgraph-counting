@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     double averageNodeSize = 0.0;
     int numVertexTable = 0, numEdgeTable = 0;
 
-    int num_threads = 10;
+    int num_threads = 15;
     tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);
     ParallelProcessingMeta pMeta(num_threads, din, dout, dun);
 
@@ -220,6 +220,11 @@ int main(int argc, char **argv) {
                         for (int j2 = 0; j2 < trees[divideFactor][j].size(); ++j2) {
                             for (int l = 0; l < trees[divideFactor][j][0].getNumNodes(); ++l) {
                                 memset(ht[l], 0, sizeof(Count) * m);
+                            }
+                            for (int i = 0; i < pMeta._num_threads; i++) {
+                                for (int l = 0; l < trees[divideFactor][j][0].getNumNodes(); ++l) {
+                                    memset(pMeta._total_hash_table[i][l], 0, sizeof(Count) * (m));
+                                }
                             }
                             int k = patterns[divideFactor][j].u.getNumVertices();
                             if (patterns[divideFactor][j].u.isClique() && k >= 4) {

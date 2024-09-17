@@ -1525,8 +1525,13 @@ void executePartition(
     pMeta.clearPartitionCandidates(partitionOrder, partitionCandPos, postOrder, startPos, endPos);
 
     // combine the results from all threads
+    ui rootID = postOrder[partitionPos[pID]];
     for (ui i = 0; i < pMeta._num_threads; i++) {
-
+        HashTable thread_local_H = pMeta._total_hash_table[i][rootID];
+        for (ui j = 0; j < m; j++) {
+            H[rootID][j] += thread_local_H[j];
+            thread_local_H[j] = 0;
+        }
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -1742,6 +1747,7 @@ void executePartition(
 #endif
                 }
             }
+            // print_hash_table(H, dun.getNumEdges(), t.getNumNodes());
             if (depth == partitionOrder.size() - 1) {
                 visited[dataV[mappingSize]] = false;
             }
@@ -1876,9 +1882,13 @@ void executeTree (
     // (What is a partition?)for each partition, calls executePartition to build a full hash table
     // I guess a partition is a group of nodes that share a common prefix
     for (VertexID pID = 0; pID < t.getPartitionPos().size(); ++pID) {
-        std::cout << "Partition " << pID << std::endl;
+        std::cout << "Prefix Size: " << t.getPartitionOrder(pID).size() << std::endl;
         executePartition(pID, t, candidate, candCount, H, din, dout, dun, useTriangle, tri,
                          p, outID, unID, reverseID, startOffset, patternV, dataV, visited, pos, tmp, allV, pMeta);
+        // print_hash_table(H, dun.getNumEdges(), t.getNumNodes());
+        // std::cout << "---" << std::endl;
+        // print_hash_table(pMeta._total_hash_table[0], dun.getNumEdges(), t.getNumNodes());
+        // std::cout << "---" << std::endl;
     }
     pMeta.clearCandidates(t);
     // all code below is just about freeing the memory, the tiso-count of this tree is already stored in H
@@ -6188,6 +6198,7 @@ void ExecutePartitionWorker::operator()(Task* task) {
                     }
                 }
             }
+            // print_hash_table(H, dun.getNumEdges(), t.getNumNodes());
             if (depth == partitionOrder.size() - 1) {
                 visited[dataV[mappingSize]] = false;
             }

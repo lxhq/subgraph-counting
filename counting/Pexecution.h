@@ -98,4 +98,4 @@ public:
 //         VertexID *allV
 // );
 
-void PexecuteParation(ParallelProcessingMeta& pMeta);
+// void PexecuteParation(ParallelProcessingMeta& pMeta);
