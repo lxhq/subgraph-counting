@@ -12,9 +12,9 @@ mode="parallel"
 # thread_nums=("19" "15" "10" "5" "1")
 # node_partition=("100" "500" "1000" "5000")
 # prefix_partition=("100" "500" "1000" "5000")
-thread_nums=("10")
-node_partition=("100" "500" "1000" "5000")
-prefix_partition=("100")
+thread_nums=("1")
+node_partition=("1000")
+prefix_partition=("500")
 
 for n in "${thread_nums[@]}"; do
     for np in "${node_partition[@]}"; do

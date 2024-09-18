@@ -791,8 +791,12 @@ void PexecuteNode(
         HashTable thread_local_H = pMeta->_total_hash_table[i][nID];
         for (ui j = 0; j < dun.getNumEdges(); j++) {
             h[j] += thread_local_H[j];
-            thread_local_H[j] = 0;
         }
+    }
+
+    for (ui i = 0; i < pMeta->_num_threads; i++) {
+        HashTable thread_local_H = pMeta->_total_hash_table[i][nID];
+        std::copy(h, h + dun.getNumEdges(), thread_local_H);
     }
 }
 
@@ -1308,8 +1312,12 @@ void PexecuteNodeEdgeKey(
         HashTable thread_local_H = pMeta->_total_hash_table[i][nID];
         for (ui j = 0; j < dun.getNumEdges(); j++) {
             h[j] += thread_local_H[j];
-            thread_local_H[j] = 0;
         }
+    }
+
+    for (ui i = 0; i < pMeta->_num_threads; i++) {
+        HashTable thread_local_H = pMeta->_total_hash_table[i][nID];
+        std::copy(h, h + dun.getNumEdges(), thread_local_H);
     }
 }
 
@@ -2041,8 +2049,11 @@ void executePartition(
         HashTable thread_local_H = pMeta->_total_hash_table[i][rootID];
         for (ui j = 0; j < m; j++) {
             H[rootID][j] += thread_local_H[j];
-            thread_local_H[j] = 0;
         }
+    }
+    for (ui i = 0; i < pMeta->_num_threads; i++) {
+        HashTable thread_local_H = pMeta->_total_hash_table[i][rootID];
+        std::copy(H[rootID], H[rootID] + dun.getNumEdges(), thread_local_H);
     }
 # ifdef COLLECT_PARALLEL_STATISTICS
     auto end = std::chrono::high_resolution_clock::now();
@@ -2399,10 +2410,12 @@ void executeTree (
 # endif
         executePartition(pID, t, candidate, candCount, H, din, dout, dun, useTriangle, tri,
                          p, outID, unID, reverseID, startOffset, patternV, dataV, visited, pos, tmp, allV, pMeta);
+        // std::cout << "Total ---" << std::endl;
         // print_hash_table(H, dun.getNumEdges(), t.getNumNodes());
-        // std::cout << "---" << std::endl;
-        // print_hash_table(pMeta._total_hash_table[0], dun.getNumEdges(), t.getNumNodes());
-        // std::cout << "---" << std::endl;
+        // std::cout << "Thread 0 ---" << std::endl;
+        // print_hash_table(pMeta->_total_hash_table[0], dun.getNumEdges(), t.getNumNodes());
+        // std::cout << "Thread 1 ---" << std::endl;
+        // print_hash_table(pMeta->_total_hash_table[1], dun.getNumEdges(), t.getNumNodes());
     }
     pMeta->clearCandidates(t);
     // all code below is just about freeing the memory, the tiso-count of this tree is already stored in H
@@ -2464,6 +2477,7 @@ void executeTree (
 # endif
         executePartition(pID, t, candidate, candCount, H, din, dout, dun, useTriangle, tri,
                          p, outID, unID, reverseID, startOffset, patternV, dataV, visited, pos, tmp, allV);
+        // print_hash_table(H, dun.getNumEdges(), t.getNumNodes());
     }
     // all code below is just about freeing the memory, the tiso-count of this tree is already stored in H
     for (VertexID nID = 0; nID < numNodes; ++nID) {
