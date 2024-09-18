@@ -1,27 +1,21 @@
 data_graph="soc-gowalla"
-vertex_set="5voc"
 
 moniter="/usr/bin/time"
 prefix="/home/ubuntu/Documents/workspace/subgraph-counting"
 binary="$prefix/build/executable/scope.out"
-data_graph="$prefix/exp/data_graph/"$data_graph".txt"
-pattern_graph="$prefix/exp/pattern_graph/"$vertex_set""
-result_dir="$prefix/result/"$data_graph"-parallel/"$vertex_set""
-mode="parallel"
+data_graph_path="$prefix/exp/data_graph/"$data_graph".txt"
+pattern_graph_dir="$prefix/exp/pattern_graph/executed_tree_patterns/"
 
-# thread_nums=("19" "15" "10" "5" "1")
-# node_partition=("100" "500" "1000" "5000")
-# prefix_partition=("100" "500" "1000" "5000")
-thread_nums=("1")
-node_partition=("1000")
-prefix_partition=("500")
+# single thread
+mode="single"
+echo "$moniter -v $binary -d $data_graph_path -q $pattern_graph_dir -m $mode -b > ""$data_graph"_single.txt" 2>&1 "
+
+# multi-thread
+mode="parallel"
+thread_nums=("1" "5" "10" "15" "19")
+node_partition="100"
+prefix_partition="50"
 
 for n in "${thread_nums[@]}"; do
-    for np in "${node_partition[@]}"; do
-        for pp in "${prefix_partition[@]}"; do
-            echo "Thread: $n, Node: $np, Prefix: $pp"
-            $moniter $binary -d $data_graph -q $pattern_graph -r $result_dir -m $mode -n $n -np $np -pp $pp -b > ""$n"_"$np"_"$pp"_"$vertex_set".txt"
-        done
-    done
+    echo "$moniter -v $binary -d $data_graph_path -q $pattern_graph_dir -m $mode -n $n -np $node_partition -pp $prefix_partition -b > ""$data_graph"_multi_"$n".txt" 2>&1"
 done
-
