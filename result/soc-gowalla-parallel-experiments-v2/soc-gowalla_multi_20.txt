@@ -1,0 +1,60 @@
+query graph path: /home/ubuntu/Documents/workspace/subgraph-counting/exp/pattern_graph/executed_tree_patterns/
+data graph path: /home/ubuntu/Documents/workspace/subgraph-counting/exp/data_graph/soc-gowalla.txt
+result path: 
+using batch query: 1
+sharing nodes computation: 0
+using triangle: 0
+set intersection type: 0
+mode: parallel
+number of threads: 20
+node partition size: 100
+prefix partition size: 50
+finished building edge ID mappings. time: 0.127988s
+file: 7voc_9.txt, execution time: 15.0366s, number of patterns: 8
+file: 7voc_8.txt, execution time: 17.6867s, number of patterns: 8
+file: 7voc_7.txt, execution time: 35.3345s, number of patterns: 10
+file: 7voc_6.txt, execution time: 15.1691s, number of patterns: 8
+file: 7voc_5.txt, execution time: 9.18542s, number of patterns: 8
+file: 7voc_4.txt, execution time: 16.4484s, number of patterns: 13
+file: 7voc_3.txt, execution time: 17.1334s, number of patterns: 9
+file: 7voc_2.txt, execution time: 22.7407s, number of patterns: 12
+file: 7voc_19.txt, execution time: 25.2922s, number of patterns: 12
+file: 7voc_18.txt, execution time: 15.9995s, number of patterns: 9
+file: 7voc_17.txt, execution time: 40.1735s, number of patterns: 14
+file: 7voc_16.txt, execution time: 8.83428s, number of patterns: 9
+file: 7voc_15.txt, execution time: 11.0734s, number of patterns: 12
+file: 7voc_14.txt, execution time: 6.85136s, number of patterns: 6
+file: 7voc_13.txt, execution time: 9.75088s, number of patterns: 8
+file: 7voc_12.txt, execution time: 15.8515s, number of patterns: 11
+file: 7voc_11.txt, execution time: 21.0442s, number of patterns: 8
+file: 7voc_10.txt, execution time: 13.6644s, number of patterns: 8
+file: 7voc_1.txt, execution time: 44.9867s, number of patterns: 10
+file: 7voc_0.txt, execution time: 32.708s, number of patterns: 11
+file: 6voc_99.txt, execution time: 6.50788s, number of patterns: 5
+file: 6voc_98.txt, execution time: 7.26939s, number of patterns: 6
+file: 6voc_97.txt, execution time: 6.83758s, number of patterns: 5
+file: 6voc_96.txt, execution time: 8.57385s, number of patterns: 6
+Command terminated by signal 9
+	Command being timed: "/home/ubuntu/Documents/workspace/subgraph-counting/build/executable/scope.out -d /home/ubuntu/Documents/workspace/subgraph-counting/exp/data_graph/soc-gowalla.txt -q /home/ubuntu/Documents/workspace/subgraph-counting/exp/pattern_graph/executed_tree_patterns/ -m parallel -n 20 -np 100 -pp 50 -b"
+	User time (seconds): 7424.38
+	System time (seconds): 40.24
+	Percent of CPU this job got: 1676%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 7:25.21
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 64204532
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 14146
+	Minor (reclaiming a frame) page faults: 16678368
+	Voluntary context switches: 15641
+	Involuntary context switches: 8584
+	Swaps: 0
+	File system inputs: 699136
+	File system outputs: 160
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
