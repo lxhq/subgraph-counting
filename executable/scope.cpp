@@ -115,12 +115,7 @@ int main(int argc, char **argv) {
     ui totalNumPatterns = 0, totalNodes = 0;
     double averageNodeSize = 0.0;
     int numVertexTable = 0, numEdgeTable = 0;
-    tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);   
-    ParallelProcessingMeta *pMeta = nullptr;
-    if (mode == "parallel") {
-        pMeta = new ParallelProcessingMeta(num_threads, node_partition_size, prefix_partition_size, din, dout, dun);
-    }
-
+    tbb::global_control control(tbb::global_control::max_allowed_parallelism, num_threads);
     if (!shareNode) {
         std::vector<HashTable> mathCalH(patternGraphs.size());
         std::vector<int> orbitTypes(patternGraphs.size());
@@ -192,102 +187,122 @@ int main(int argc, char **argv) {
                 elapsedSeconds = end - start;
                 totalExeTime += elapsedSeconds.count();
             } else {
-                for (auto it = patterns.begin(); it != patterns.end(); ++it) {
-                    int divideFactor = it->first;
-                    memset(factorSum, 0, sizeof(Count) * (m + 1));
-                    for (int j = 0; j < it->second.size(); ++j) {
-                        for (int j2 = 0; j2 < trees[divideFactor][j].size(); ++j2) {
-                            for (int l = 0; l < trees[divideFactor][j][0].getNumNodes(); ++l) {
-                                memset(ht[l], 0, sizeof(Count) * m);
-                            }
-                            if (mode == "parallel") {
+                if (mode == "single") {
+
+                } else {
+                    // convert patterns from a map to a vector
+                    std::vector<std::pair<int, int>> patterns_index;
+                    for (auto it = patterns.begin(); it != patterns.end(); ++it) {
+                        for (int j = 0; j < it->second.size(); ++j) {
+                            patterns_index.emplace_back(it->first, j);
+                        }
+                    }
+                    // create a factor Sum for each different pattern
+                    // create a hash table for each different pattern
+                    Count** total_factor_sum = new Count*[patterns_index.size()];
+                    for (int pattern_index = 0; pattern_index < patterns_index.size(); pattern_index++) {
+                        total_factor_sum[pattern_index] = new Count[m + 1];
+                    }
+                    tbb::spin_mutex mutex;
+                    tbb::parallel_for(tbb::blocked_range<size_t>(0, patterns_index.size()), [&](const tbb::blocked_range<size_t>& range) {
+                        for (size_t pattern_index = range.begin(); pattern_index != range.end(); ++pattern_index) {
+                            int divideFactor = patterns_index[pattern_index].first;
+                            int j = patterns_index[pattern_index].second;
+                            ParallelProcessingMeta *pMeta = new ParallelProcessingMeta(num_threads, node_partition_size, prefix_partition_size, din, dout, dun);
+                            HashTable factorSumt = total_factor_sum[pattern_index];
+                            HashTable hasht[MAX_NUM_NODE];
+                            for (auto & h: hasht)
+                                h = new Count[m + 1];
+                            memset(factorSumt, 0, sizeof(Count) * (m + 1));
+                            for (int j2 = 0; j2 < trees[divideFactor][j].size(); ++j2) {
+                                for (int l = 0; l < trees[divideFactor][j][0].getNumNodes(); ++l) {
+                                    memset(hasht[l], 0, sizeof(Count) * m);
+                                }
                                 for (int i = 0; i < pMeta->_num_threads; i++) {
                                     for (int l = 0; l < trees[divideFactor][j][0].getNumNodes(); ++l) {
                                         memset(pMeta->_total_hash_table[i][l], 0, sizeof(Count) * (m));
                                     }
                                 }
-                            }
-                            int k = patterns[divideFactor][j].u.getNumVertices();
-                            if (patterns[divideFactor][j].u.isClique() && k >= 4) {
-                                HashTable h = ht[trees[divideFactor][j][j2].getRootID()];
-                                int aggreWeight = trees[divideFactor][j][j2].getAggreWeight()[0];
-                                mkspecial(sg, k);
-                                kclique(k, k, sg, cliqueVertices, h, orbitType);
-                                freesub(sg, k);
-                                if (aggreWeight != 1) {
-                                    if (orbitType == 0) h[0] *= aggreWeight;
-                                    else if (orbitType == 1) {
-                                        for (VertexID v = 0; v < n; ++v)
-                                            h[v] *= aggreWeight;
+                                int k = patterns[divideFactor][j].u.getNumVertices();
+                                if (patterns[divideFactor][j].u.isClique() && k >= 4) {
+                                    HashTable h = hasht[trees[divideFactor][j][j2].getRootID()];
+                                    int aggreWeight = trees[divideFactor][j][j2].getAggreWeight()[0];
+                                    mkspecial(sg, k);
+                                    kclique(k, k, sg, cliqueVertices, h, orbitType);
+                                    freesub(sg, k);
+                                    if (aggreWeight != 1) {
+                                        if (orbitType == 0) h[0] *= aggreWeight;
+                                        else if (orbitType == 1) {
+                                            for (VertexID v = 0; v < n; ++v)
+                                                h[v] *= aggreWeight;
+                                        }
+                                        else {
+                                            for (EdgeID e = 0; e < m; ++e)
+                                                h[e] *= aggreWeight;
+                                        }
                                     }
-                                    else {
-                                        for (EdgeID e = 0; e < m; ++e)
-                                            h[e] *= aggreWeight;
-                                    }
-                                }
-                            }
-                            else {
-                                const Tree &t = trees[divideFactor][j][j2];
-                                if (t.getExecuteMode()) {
-                                    if (mode == "single") {
-                                        executeTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
-                                                ht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV);
-                                    } else {
-                                       executeTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
-                                                ht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV, pMeta); 
-                                    }
-
                                 }
                                 else {
-                                    multiJoinTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
-                                                ht, outID, unID, reverseID, startOffset, patternV, dataV, visited, tmp, allV);
+                                    const Tree &t = trees[divideFactor][j][j2];
+                                    if (t.getExecuteMode()) {
+                                        executeTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
+                                                hasht, outID, unID, reverseID, startOffset[0], patternV[0], dataV[0], visited[0], candPos, tmp, allV, pMeta);
+                                    }
+                                    else {
+                                        multiJoinTree(t, din, dout, dun, useTriangle, triangle, patterns[divideFactor][j],
+                                                    hasht, outID, unID, reverseID, startOffset, patternV, dataV, visited, tmp, allV);
+                                    }
                                 }
-                            }
-                            // ht is the cout for each node. here h is the count for the root node
-                            HashTable h = ht[trees[divideFactor][j][j2].getRootID()];
-                            int multiFactor = trees[divideFactor][j][j2].getMultiFactor();
-                            if (!resultPath.empty()) {
-                                if (orbitType == 0) factorSum[0] += h[0];
-                                else if (orbitType == 1)
-                                    for (VertexID l = 0; l < n; ++l) {
-                                        factorSum[l] += h[l] * multiFactor;
-                                    }
-                                else
-                                    for (EdgeID l = 0; l < m + 1; ++l) {
-                                        factorSum[l] += h[l] * multiFactor;
-                                    }
-                            }
-    #ifdef DEBUG
-                            if (divideFactor == 2 && patterns[divideFactor][j].u.getCanonValue() == 281875) {
-                            for (VertexID l = 0; l < n; ++l) {
-                                hPattern[l] += h[l];
-                            }
-                        }
-    #endif
-                            for (VertexID nID = 0; nID < trees[divideFactor][j][j2].getNumNodes(); ++nID) {
-                                ++totalNodes;
-                                averageNodeSize += trees[divideFactor][j][j2].getNode(nID).numVertices;
-                                visitedNode.insert(trees[divideFactor][j][j2].getNode(nID).canonValue);
-                                if (nID != trees[divideFactor][j][j2].getPostOrder().back()) {
-                                    if (trees[divideFactor][j][j2].getNode(nID).keySize == 1)
-                                        ++numVertexTable;
+                                // ht is the cout for each node. here h is the count for the root node
+                                HashTable h = hasht[trees[divideFactor][j][j2].getRootID()];
+                                int multiFactor = trees[divideFactor][j][j2].getMultiFactor();
+                                if (!resultPath.empty()) {
+                                    if (orbitType == 0) factorSumt[0] += h[0];
+                                    else if (orbitType == 1)
+                                        for (VertexID l = 0; l < n; ++l) {
+                                            factorSumt[l] += h[l] * multiFactor;
+                                        }
                                     else
-                                        ++numEdgeTable;
+                                        for (EdgeID l = 0; l < m + 1; ++l) {
+                                            factorSumt[l] += h[l] * multiFactor;
+                                        }
+                                }
+                                // for (VertexID nID = 0; nID < trees[divideFactor][j][j2].getNumNodes(); ++nID) {
+                                //     ++totalNodes;
+                                //     averageNodeSize += trees[divideFactor][j][j2].getNode(nID).numVertices;
+                                //     visitedNode.insert(trees[divideFactor][j][j2].getNode(nID).canonValue);
+                                //     if (nID != trees[divideFactor][j][j2].getPostOrder().back()) {
+                                //         if (trees[divideFactor][j][j2].getNode(nID).keySize == 1)
+                                //             ++numVertexTable;
+                                //         else
+                                //             ++numEdgeTable;
+                                //     }
+                                // }
+                            }
+                            {
+                                tbb::spin_mutex::scoped_lock lock(mutex);
+                                if (!resultPath.empty()) {
+                                    if (orbitType == 0) H[0] += factorSumt[0] / divideFactor;
+                                    else if (orbitType == 1)
+                                        for (VertexID l = 0; l < n; ++l) {
+                                            H[l] += factorSumt[l] / divideFactor;
+                                        }
+                                    else
+                                        for (EdgeID l = 0; l < m + 1; ++l) {
+                                            H[l] += factorSumt[l] / divideFactor;
+                                        }
                                 }
                             }
+                            for (int l = 0; l < trees[divideFactor][j].size(); ++l) {
+                                delete[] hasht[l];
+                            }
+                            delete pMeta;
                         }
+                    });
+                    for (int pattern_index = 0; pattern_index < patterns_index.size(); pattern_index++) {
+                        delete[] total_factor_sum[pattern_index];
                     }
-                    if (!resultPath.empty()) {
-                        if (orbitType == 0) H[0] += factorSum[0] / divideFactor;
-                        else if (orbitType == 1)
-                            for (VertexID l = 0; l < n; ++l) {
-                                H[l] += factorSum[l] / divideFactor;
-                            }
-                        else
-                            for (EdgeID l = 0; l < m + 1; ++l) {
-                                H[l] += factorSum[l] / divideFactor;
-                            }
-                    }
+                    delete[] total_factor_sum;
                 }
             }
             end = std::chrono::steady_clock::now();
