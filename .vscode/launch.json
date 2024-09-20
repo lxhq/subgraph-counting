@@ -9,11 +9,11 @@
             // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/69.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/30.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/36.txt",
-            "-q", "${workspaceFolder}/exp/pattern_graph/6voc/384.txt",
+            // "-q", "${workspaceFolder}/exp/pattern_graph/6voc/384.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/6voc/26.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/52.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/34.txt",
-
+            "-q", "${workspaceFolder}/exp/pattern_graph/7voc/9.txt",
 
             // "-t", "${workspaceFolder}/exp/data_graph/web-spamt.bin",
 
@@ -27,7 +27,7 @@
             // "-r", "${workspaceFolder}/result/web-spam/",
 
             "-m", "parallel",
-            "-n", "10",
+            "-n", "5",
             "-np", "500",
             "-pp", "100"
         ],

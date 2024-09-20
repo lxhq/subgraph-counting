@@ -204,6 +204,7 @@ int main(int argc, char **argv) {
                         total_factor_sum[pattern_index] = new Count[m + 1];
                     }
                     tbb::spin_mutex mutex;
+                    tbb::spin_mutex mutex2;
                     tbb::parallel_for(tbb::blocked_range<size_t>(0, patterns_index.size()), [&](const tbb::blocked_range<size_t>& range) {
                         for (size_t pattern_index = range.begin(); pattern_index != range.end(); ++pattern_index) {
                             int divideFactor = patterns_index[pattern_index].first;
@@ -227,9 +228,12 @@ int main(int argc, char **argv) {
                                 if (patterns[divideFactor][j].u.isClique() && k >= 4) {
                                     HashTable h = hasht[trees[divideFactor][j][j2].getRootID()];
                                     int aggreWeight = trees[divideFactor][j][j2].getAggreWeight()[0];
-                                    mkspecial(sg, k);
-                                    kclique(k, k, sg, cliqueVertices, h, orbitType);
-                                    freesub(sg, k);
+                                    {
+                                        tbb::spin_mutex::scoped_lock lock(mutex2);
+                                        mkspecial(sg, k);
+                                        kclique(k, k, sg, cliqueVertices, h, orbitType);
+                                        freesub(sg, k);
+                                    }
                                     if (aggreWeight != 1) {
                                         if (orbitType == 0) h[0] *= aggreWeight;
                                         else if (orbitType == 1) {
