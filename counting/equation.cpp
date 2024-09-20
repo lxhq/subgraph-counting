@@ -235,7 +235,7 @@ bool genEquation(const PatternGraph &p, std::map<int, std::vector<Pattern>> &pat
     Tree &rt = rootBestDecomp[0];
     //Find common vertices among nodes and children nodes
     rt.rebuildCut();
-    cn = ConNode(p, rt);
+    if (useTriangle) cn = ConNode(p, rt);
     if (cn.num != 0) {
         int divideFactor = p.getDivideFactor();
         patterns[divideFactor].push_back(rootPattern);
