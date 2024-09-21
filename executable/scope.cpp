@@ -5,6 +5,7 @@
 #include "command.h"
 #include "execution.h"
 #include "Pexecution.h"
+#include <malloc.h>
 
 int main(int argc, char **argv) {
     Command cmd(argc, argv);
@@ -208,12 +209,7 @@ int main(int argc, char **argv) {
                     tbb::spin_mutex mutex;
                     tbb::spin_mutex mutex2;
                     int num_patterns = patterns_index.size();
-                    int grain_size = 1;
-                    if (num_patterns <= patterns_parallel_size) {
-                        grain_size = 1;
-                    } else {
-                        grain_size = (n + 9) / patterns_parallel_size;
-                    }
+                    int grain_size = (num_patterns + patterns_parallel_size - 1) / patterns_parallel_size;
                     tbb::parallel_for(tbb::blocked_range<size_t>(0, patterns_index.size(), grain_size), [&](const tbb::blocked_range<size_t>& range) {
                         for (size_t pattern_index = range.begin(); pattern_index != range.end(); ++pattern_index) {
                             int divideFactor = patterns_index[pattern_index].first;
@@ -328,6 +324,9 @@ int main(int argc, char **argv) {
             totalExeTime += exeTime;
             totalNumPatterns += numPatterns;
             mathCalH[i] = H;
+            if (i != 0 && i % 10 == 0) {
+                malloc_trim(0);
+            }
         }
         if (!resultPath.empty()) saveCount(resultPath, mathCalH, dun, batchQuery, files, orbitTypes);
         for (int i = 0; i < patternGraphs.size(); ++i)

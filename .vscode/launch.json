@@ -9,28 +9,32 @@
             // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/69.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/30.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/36.txt",
-            "-q", "${workspaceFolder}/exp/pattern_graph/6voc/384.txt",
+            // "-q", "${workspaceFolder}/exp/pattern_graph/6voc/384.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/6voc/26.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/52.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/5voc/34.txt",
             // "-q", "${workspaceFolder}/exp/pattern_graph/6voc/90.txt",
+            // "-q" , "${workspaceFolder}/exp/pattern_graph/7voc/8.txt",
+            "-q", "${workspaceFolder}/exp/pattern_graph/executed_tree_patterns/",
 
             // "-t", "${workspaceFolder}/exp/data_graph/web-spamt.bin",
 
-            "-d", "${workspaceFolder}/exp/data_graph/small_384.txt",
+            // "-d", "${workspaceFolder}/exp/data_graph/small_384.txt",
             // "-d", "${workspaceFolder}/exp/data_graph/web-spam.txt",
-            // "-d", "${workspaceFolder}/exp/data_graph/soc-gowalla.txt",
+            "-d", "${workspaceFolder}/exp/data_graph/soc-gowalla.txt",
 
             // "-r", "${workspaceFolder}/result/68.txt",
             // "-r", "${workspaceFolder}/result/30.txt",
-            "-r", "${workspaceFolder}/result/384.txt",
+            // "-r", "${workspaceFolder}/result/384.txt",
             // "-r", "${workspaceFolder}/result/26.txt",
             // "-r", "${workspaceFolder}/result/web-spam/",
 
             "-m", "parallel",
-            "-n", "10",
+            "-n", "19",
             "-np", "500",
-            "-pp", "100"
+            "-pp", "100",
+
+            "-b", "",
         ],
         "stopAtConnect": false,
         "cwd": "${workspaceFolder}",
