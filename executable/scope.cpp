@@ -690,5 +690,27 @@ int main(int argc, char **argv) {
         if (!resultPath.empty()) saveCount(resultPath, result, dun, batchQuery, files, orbitTypes);
     }
 
+    delete[] reverseID;
+    delete[] outID;
+    delete[] unID;
+    delete[] sg;
+    delete[] cliqueVertices;
+    delete[] tmp;
+    delete[] allV;
+    for (auto & h: ht)
+        delete[] h;
+    delete [] factorSum;
+    for (int i = 0; i < MAX_NUM_NODE; ++i) {
+        delete[] patternV[i];
+        delete[] dataV[i];
+        delete[] startOffset[i];
+        delete[] visited[i];
+    }
+    delete[] patternV;
+    delete[] dataV;
+    delete[] startOffset;
+    delete[] visited;
+    delete[] candPos;
+
     return 0;
 }
