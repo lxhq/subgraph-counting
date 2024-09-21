@@ -324,9 +324,7 @@ int main(int argc, char **argv) {
             totalExeTime += exeTime;
             totalNumPatterns += numPatterns;
             mathCalH[i] = H;
-            if (i != 0 && i % 10 == 0) {
-                malloc_trim(0);
-            }
+            malloc_trim(0);
         }
         if (!resultPath.empty()) saveCount(resultPath, mathCalH, dun, batchQuery, files, orbitTypes);
         for (int i = 0; i < patternGraphs.size(); ++i)
