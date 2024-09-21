@@ -197,8 +197,7 @@ int main(int argc, char **argv) {
                             patterns_index.emplace_back(it->first, j);
                         }
                     }
-                    // create a factor Sum for each different pattern
-                    // create a hash table for each different pattern
+                    // create a factor sum for each different pattern
                     Count** total_factor_sum = new Count*[patterns_index.size()];
                     for (int pattern_index = 0; pattern_index < patterns_index.size(); pattern_index++) {
                         total_factor_sum[pattern_index] = new Count[m + 1];
@@ -297,8 +296,8 @@ int main(int argc, char **argv) {
                                         }
                                 }
                             }
-                            for (int l = 0; l < trees[divideFactor][j].size(); ++l) {
-                                delete[] hasht[l];
+                            for (auto & h: hasht) {
+                                delete[] h;
                             }
                             delete pMeta;
                         }

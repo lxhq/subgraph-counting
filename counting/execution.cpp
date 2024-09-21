@@ -722,8 +722,6 @@ void PexecuteNode(
         VertexID nID,
         const Tree &t,
         const std::vector<VertexID> &child,
-        VertexID **candidate,
-        ui *candCount,
         HashTable *H,
         const DataGraph &din,
         const DataGraph &dout,
@@ -1228,8 +1226,6 @@ void PexecuteNodeEdgeKey(
         VertexID nID,
         const Tree &t,
         const std::vector<VertexID> &child,
-        VertexID **candidate,
-        ui *candCount,
         HashTable *H,
         const DataGraph &din,
         const DataGraph &dout,
@@ -1934,7 +1930,7 @@ void executePartition(
             VertexID nID = postOrder[i];
             isRoot = endPos == postOrder.size() && i == endPos - 1;
             if (!t.nodeEdgeKey(nID) && !useTriangle) {
-                PexecuteNode(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, p, isRoot, outID, unID, reverseID,
+                PexecuteNode(nID, t, allChild[nID], H, din, dout, dun, p, isRoot, outID, unID, reverseID,
                             startOffset, patternV, dataV, 0, visited, pos, nullptr, argument, argument, tmp, allV, pMeta);
             }
             else if (!t.nodeEdgeKey(nID) && useTriangle) {
@@ -1943,7 +1939,7 @@ void executePartition(
 
             }
             else if (t.nodeEdgeKey(nID) && !useTriangle) {
-                PexecuteNodeEdgeKey(nID, t, allChild[nID], candidate[nID], candCount[nID], H, din, dout, dun, p, isRoot, outID, unID, reverseID,
+                PexecuteNodeEdgeKey(nID, t, allChild[nID], H, din, dout, dun, p, isRoot, outID, unID, reverseID,
                                    startOffset, patternV, dataV, 0, visited, pos, nullptr, argument, argument, tmp, allV, pMeta);
             }
             else {
@@ -2387,19 +2383,21 @@ void executeTree (
         ParallelProcessingMeta* pMeta
 ) {
     int numNodes = (int)t.getNumNodes();
-    VertexID ***candidate = new VertexID **[numNodes];
-    ui **candCount = new ui *[numNodes];
-    for (VertexID nID = 0; nID < numNodes; ++nID) {
-        const Node &tau = t.getNode(nID);
-        int partOrderLength = int(tau.nodeOrder.size() - tau.localOrder.size());
-        candCount[nID] = new ui[tau.nodeOrder.size()];
-        candidate[nID] = new VertexID *[tau.nodeOrder.size()];
-        const std::vector<bool> &nodeCandPos = t.getNodeCandPos(nID);
-        for (int i = partOrderLength; i < nodeCandPos.size(); ++i) {
-            if (nodeCandPos[i])
-                candidate[nID][i] = new VertexID[dout.getNumVertices()];
-        }
-    }
+    // VertexID ***candidate = new VertexID **[numNodes];
+    // ui **candCount = new ui *[numNodes];
+    // for (VertexID nID = 0; nID < numNodes; ++nID) {
+    //     const Node &tau = t.getNode(nID);
+    //     int partOrderLength = int(tau.nodeOrder.size() - tau.localOrder.size());
+    //     candCount[nID] = new ui[tau.nodeOrder.size()];
+    //     candidate[nID] = new VertexID *[tau.nodeOrder.size()];
+    //     const std::vector<bool> &nodeCandPos = t.getNodeCandPos(nID);
+    //     for (int i = partOrderLength; i < nodeCandPos.size(); ++i) {
+    //         if (nodeCandPos[i])
+    //             candidate[nID][i] = new VertexID[dout.getNumVertices()];
+    //     }
+    // }
+    VertexID ***candidate = nullptr;
+    ui **candCount = nullptr;
     pMeta->setCandidates(t, dout);
 
     // (What is a partition?)for each partition, calls executePartition to build a full hash table
@@ -2419,19 +2417,19 @@ void executeTree (
     }
     pMeta->clearCandidates(t);
     // all code below is just about freeing the memory, the tiso-count of this tree is already stored in H
-    for (VertexID nID = 0; nID < numNodes; ++nID) {
-        const Node &tau = t.getNode(nID);
-        int partOrderLength = int(tau.nodeOrder.size() - tau.localOrder.size());
-        const std::vector<bool> &nodeCandPos = t.getNodeCandPos(nID);
-        for (int i = partOrderLength; i < nodeCandPos.size(); ++i) {
-            if (nodeCandPos[i])
-                delete[] candidate[nID][i];
-        }
-        delete[] candidate[nID];
-        delete[] candCount[nID];
-    }
-    delete[] candCount;
-    delete[] candidate;
+    // for (VertexID nID = 0; nID < numNodes; ++nID) {
+    //     const Node &tau = t.getNode(nID);
+    //     int partOrderLength = int(tau.nodeOrder.size() - tau.localOrder.size());
+    //     const std::vector<bool> &nodeCandPos = t.getNodeCandPos(nID);
+    //     for (int i = partOrderLength; i < nodeCandPos.size(); ++i) {
+    //         if (nodeCandPos[i])
+    //             delete[] candidate[nID][i];
+    //     }
+    //     delete[] candidate[nID];
+    //     delete[] candCount[nID];
+    // }
+    // delete[] candCount;
+    // delete[] candidate;
 }
 
 void executeTree (
