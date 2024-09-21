@@ -23,6 +23,13 @@ int main(int argc, char **argv) {
     ui num_threads = cmd.getNumThreads();
     ui node_partition_size = cmd.getNodePartitionSize();
     ui prefix_partition_size = cmd.getPrefixPartitionSize();
+    ui patterns_parallel_size = 10;
+    if (mode == "parallel") {
+        if (num_threads <= patterns_parallel_size) {
+            std::cerr << "Invalid number of threads: " << num_threads << std::endl;
+            exit(1);
+        }
+    }
     std::cout << "query graph path: " << queryGraphPath << std::endl;
     std::cout << "data graph path: " << dataGraphPath << std::endl;
     std::cout << "result path: " << resultPath << std::endl;
@@ -198,19 +205,22 @@ int main(int argc, char **argv) {
                         }
                     }
                     // create a factor sum for each different pattern
-                    Count** total_factor_sum = new Count*[patterns_index.size()];
-                    for (int pattern_index = 0; pattern_index < patterns_index.size(); pattern_index++) {
-                        total_factor_sum[pattern_index] = new Count[m + 1];
-                    }
                     tbb::spin_mutex mutex;
                     tbb::spin_mutex mutex2;
-                    tbb::parallel_for(tbb::blocked_range<size_t>(0, patterns_index.size()), [&](const tbb::blocked_range<size_t>& range) {
+                    int num_patterns = patterns_index.size();
+                    int grain_size = 1;
+                    if (num_patterns <= patterns_parallel_size) {
+                        grain_size = 1;
+                    } else {
+                        grain_size = (n + 9) / patterns_parallel_size;
+                    }
+                    tbb::parallel_for(tbb::blocked_range<size_t>(0, patterns_index.size(), grain_size), [&](const tbb::blocked_range<size_t>& range) {
                         for (size_t pattern_index = range.begin(); pattern_index != range.end(); ++pattern_index) {
                             int divideFactor = patterns_index[pattern_index].first;
                             int j = patterns_index[pattern_index].second;
                             ParallelProcessingMeta *pMeta = new ParallelProcessingMeta(num_threads, node_partition_size, prefix_partition_size, din, dout, dun);
-                            HashTable factorSumt = total_factor_sum[pattern_index];
                             HashTable hasht[MAX_NUM_NODE];
+                            Count* factorSumt = new Count[m + 1];
                             for (auto & h: hasht)
                                 h = new Count[m + 1];
                             memset(factorSumt, 0, sizeof(Count) * (m + 1));
@@ -299,13 +309,10 @@ int main(int argc, char **argv) {
                             for (auto & h: hasht) {
                                 delete[] h;
                             }
+                            delete[] factorSumt;
                             delete pMeta;
                         }
                     });
-                    for (int pattern_index = 0; pattern_index < patterns_index.size(); pattern_index++) {
-                        delete[] total_factor_sum[pattern_index];
-                    }
-                    delete[] total_factor_sum;
                 }
             }
             end = std::chrono::steady_clock::now();
