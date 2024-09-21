@@ -24,12 +24,12 @@ int main(int argc, char **argv) {
     ui num_threads = cmd.getNumThreads();
     ui node_partition_size = cmd.getNodePartitionSize();
     ui prefix_partition_size = cmd.getPrefixPartitionSize();
-    ui patterns_parallel_size = 10;
+    ui patterns_parallel_size = 1;
     if (mode == "parallel") {
-        if (num_threads <= patterns_parallel_size) {
-            std::cerr << "Invalid number of threads: " << num_threads << std::endl;
-            exit(1);
-        }
+        // if (num_threads <= patterns_parallel_size) {
+        //     std::cerr << "Invalid number of threads: " << num_threads << std::endl;
+        //     exit(1);
+        // }
     }
     std::cout << "query graph path: " << queryGraphPath << std::endl;
     std::cout << "data graph path: " << dataGraphPath << std::endl;
