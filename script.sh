@@ -15,7 +15,8 @@ mode="parallel"
 thread_nums=("1" "5" "10" "15" "19")
 node_partition="100"
 prefix_partition="50"
+patterns_parallel_size="10"
 
 for n in "${thread_nums[@]}"; do
-    echo "$moniter -v $binary -d $data_graph_path -q $pattern_graph_dir -m $mode -n $n -np $node_partition -pp $prefix_partition -b > ""$data_graph"_multi_"$n".txt" 2>&1"
+    echo "$moniter -v $binary -d $data_graph_path -q $pattern_graph_dir -m $mode -n $n -np $node_partition -pp $prefix_partition -patp $patterns_parallel_size -b > ""$data_graph"_multi_"$n".txt" 2>&1"
 done

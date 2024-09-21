@@ -20,6 +20,7 @@ enum OptionKeyword {
     NumThreads = 8,         // -n, number of threads
     NodePartitionSize = 9,  // -np, node partition size
     PrefixPartitionSize = 10, // -pp, prefix partition size
+    PatternsParallelSize = 11 // -patp, patterns parallel size
 };
 
 class Command : public CommandParser {
@@ -73,6 +74,10 @@ public:
 
     int getPrefixPartitionSize() {
         return intOptionValue[OptionKeyword::PrefixPartitionSize];
+    }
+
+    int getPatternsParallelSize() {
+        return intOptionValue[OptionKeyword::PatternsParallelSize];
     }
 };
 

@@ -24,13 +24,8 @@ int main(int argc, char **argv) {
     ui num_threads = cmd.getNumThreads();
     ui node_partition_size = cmd.getNodePartitionSize();
     ui prefix_partition_size = cmd.getPrefixPartitionSize();
-    ui patterns_parallel_size = 1;
-    if (mode == "parallel") {
-        // if (num_threads <= patterns_parallel_size) {
-        //     std::cerr << "Invalid number of threads: " << num_threads << std::endl;
-        //     exit(1);
-        // }
-    }
+    ui patterns_parallel_size = cmd.getPatternsParallelSize();
+
     std::cout << "query graph path: " << queryGraphPath << std::endl;
     std::cout << "data graph path: " << dataGraphPath << std::endl;
     std::cout << "result path: " << resultPath << std::endl;
@@ -43,6 +38,7 @@ int main(int argc, char **argv) {
         std::cout << "number of threads: " << num_threads << std::endl;
         std::cout << "node partition size: " << node_partition_size << std::endl;
         std::cout << "prefix partition size: " << prefix_partition_size << std::endl;
+        std::cout << "patterns parallel size: " << patterns_parallel_size << std::endl;
     }
     DataGraph dun = DataGraph();
     dun.loadDataGraph(dataGraphPath);
@@ -200,10 +196,23 @@ int main(int argc, char **argv) {
                 } else {
                     // convert patterns from a map to a vector
                     std::vector<std::pair<int, int>> patterns_index;
+                    std::set<int> unique_dividedfactors;
                     for (auto it = patterns.begin(); it != patterns.end(); ++it) {
+                        unique_dividedfactors.insert(it->first);
                         for (int j = 0; j < it->second.size(); ++j) {
                             patterns_index.emplace_back(it->first, j);
                         }
+                    }
+                    std::vector<int> all_dividedfactors(unique_dividedfactors.begin(), unique_dividedfactors.end());
+                    std::unordered_map<int, int> dividedfactors_index;
+                    for (int i = 0; i < all_dividedfactors.size(); ++i) {
+                        dividedfactors_index[all_dividedfactors[i]] = i;
+                    }
+                    // create a total_result_table for each different divide factor
+                    HashTable dividedfactors_result_table[all_dividedfactors.size()];
+                    for (auto & h: dividedfactors_result_table) {
+                        h = new Count[m + 1];
+                        memset(h, 0, sizeof(Count) * (m + 1));
                     }
                     // create a factor sum for each different pattern
                     tbb::spin_mutex mutex;
@@ -291,14 +300,14 @@ int main(int argc, char **argv) {
                             {
                                 tbb::spin_mutex::scoped_lock lock(mutex);
                                 if (!resultPath.empty()) {
-                                    if (orbitType == 0) H[0] += factorSumt[0] / divideFactor;
+                                    if (orbitType == 0) dividedfactors_result_table[dividedfactors_index[divideFactor]][0] += factorSumt[0];
                                     else if (orbitType == 1)
                                         for (VertexID l = 0; l < n; ++l) {
-                                            H[l] += factorSumt[l] / divideFactor;
+                                             dividedfactors_result_table[dividedfactors_index[divideFactor]][l] += factorSumt[l];
                                         }
                                     else
                                         for (EdgeID l = 0; l < m + 1; ++l) {
-                                            H[l] += factorSumt[l] / divideFactor;
+                                             dividedfactors_result_table[dividedfactors_index[divideFactor]][l] += factorSumt[l];
                                         }
                                 }
                             }
@@ -309,6 +318,22 @@ int main(int argc, char **argv) {
                             delete pMeta;
                         }
                     });
+                    if (!resultPath.empty()) {
+                        for (int divideFactor : all_dividedfactors) {
+                            if (orbitType == 0) H[0] += dividedfactors_result_table[dividedfactors_index[divideFactor]][0] / divideFactor;
+                            else if (orbitType == 1)
+                                for (VertexID l = 0; l < n; ++l) {
+                                        H[l] += dividedfactors_result_table[dividedfactors_index[divideFactor]][l] / divideFactor;
+                                }
+                            else
+                                for (EdgeID l = 0; l < m + 1; ++l) {
+                                        H[l] += dividedfactors_result_table[dividedfactors_index[divideFactor]][l] / divideFactor;
+                                }
+                        }
+                    }
+                    for (auto & h: dividedfactors_result_table) {
+                        delete[] h;
+                    }
                 }
             }
             end = std::chrono::steady_clock::now();

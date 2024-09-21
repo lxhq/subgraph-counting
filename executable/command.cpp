@@ -17,6 +17,7 @@ Command::Command(int argc, char **argv) : CommandParser(argc, argv){
     optionsKey[OptionKeyword::NumThreads] = "-n";
     optionsKey[OptionKeyword::NodePartitionSize] = "-np";
     optionsKey[OptionKeyword::PrefixPartitionSize] = "-pp";
+    optionsKey[OptionKeyword::PatternsParallelSize] = "-patp";
     processOptions();
 }
 
@@ -48,5 +49,11 @@ void Command::processOptions() {
     }
     else {
         intOptionValue[OptionKeyword::PrefixPartitionSize] = std::stoi(prefix_partition_size);
+    }
+    std::string patterns_parallel_size = getCommandOption(optionsKey[OptionKeyword::PatternsParallelSize]);
+    if (patterns_parallel_size.empty()) {
+        intOptionValue[OptionKeyword::PatternsParallelSize] = 10;
+    } else {
+        intOptionValue[OptionKeyword::PatternsParallelSize] = std::stoi(patterns_parallel_size);
     }
 }
